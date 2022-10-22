@@ -2,20 +2,19 @@ program bessels_test
     use bessels
     implicit none
 
+    integer :: nfailed=0,npassed=0
 
-    integer :: nfailed,npassed
-
-    nfailed = 0
-    npassed = 0
 
     call add_test(test_cuberoot())
 
-    print "('[bessels] ',i0,' test completed: ',i0,' passed, ',i0,' failed.')", npassed+nfailed,npassed,nfailed
+    print 1, npassed+nfailed,npassed,nfailed
     if (nfailed>0) then
         stop -1
     else
         stop 0
     endif
+
+    1 format('[bessels] ',i0,' test completed: ',i0,' passed, ',i0,' failed.')
 
     contains
 

@@ -8,8 +8,10 @@ Currently, only the `besselj0(x)` function is available. It is in the `bessel_co
 A simple build can be achieved by running 
 
 ```
-gfortran -O3 -march=native -ffast-math src/bessels_constants.f90 src/bessels.f90 test/bessels_test.f90 -o bessels_test.exe
+gfortran -ffree-line-length-none -O3 -march=native -ffast-math src/bessels_constants.f90 src/bessels.f90 test/bessels_test.f90 -o bessels_test.exe
 ```
+
+
 
 
 

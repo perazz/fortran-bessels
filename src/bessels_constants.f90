@@ -3,41 +3,40 @@ module bessels_constants
     implicit none
     public
 
-    integer, parameter :: BKIND = real64
+    integer, parameter :: BK    = real64
     integer, parameter :: BSIZE = int32
 
-
-    real(BKIND), parameter :: ZERO     = 0.00_BKIND
-    real(BKIND), parameter :: ONE      = 1.00_BKIND
-    real(BKIND), parameter :: TWO      = 2.00_BKIND
-    real(BKIND), parameter :: FOUR     = 4.00_BKIND
-    real(BKIND), parameter :: HALF     = 0.50_BKIND
-    real(BKIND), parameter :: FOURTH   = 0.25_BKIND
-    real(BKIND), parameter :: TWOTHD   = 2.0_BKIND/3.0_BKIND
-    real(BKIND), parameter :: THIRD    = 1.0_BKIND/3.0_BKIND
-    real(BKIND), parameter :: SIXTH    = 1.0_BKIND/6.0_BKIND
-
-
-    real(BKIND), parameter :: PI       = acos(-1.0_BKIND)
-    real(BKIND), parameter :: ONEOSQPI = ONE/SQRT(PI)
-    real(BKIND), parameter :: TWOOPI   = TWO/PI
-    real(BKIND), parameter :: PIO2     = PI*HALF
-    real(BKIND), parameter :: PIO4     = PI*FOURTH
-    real(BKIND), parameter :: SQPIO2   = 1.253314137315500251207882642405522626503493370304969158314961788171146827303924_BKIND
-    real(BKIND), parameter :: SQ1O2PI  = 0.3989422804014326779399460599343818684758586311649346576659258296706579258993008_BKIND
-    real(BKIND), parameter :: SQ2OPI   = 0.7978845608028653558798921198687637369517172623298693153318516593413158517986017_BKIND
-    real(BKIND), parameter :: SQ2O2    = 0.707106781186547524400844362104849039284835937688474036588339868995366239231051_BKIND
-
-    real(BKIND), parameter :: THPIO4   = 2.35619449019234492885_BKIND
-    real(BKIND), parameter :: SQ2PI    = 2.5066282746310007_BKIND
+    real(BK), parameter :: ZERO     = 0.00_BK
+    real(BK), parameter :: ONE      = 1.00_BK
+    real(BK), parameter :: TWO      = 2.00_BK
+    real(BK), parameter :: FOUR     = 4.00_BK
+    real(BK), parameter :: HALF     = 0.50_BK
+    real(BK), parameter :: FOURTH   = 0.25_BK
+    real(BK), parameter :: TWOTHD   = 2.0_BK/3.0_BK
+    real(BK), parameter :: THIRD    = 1.0_BK/3.0_BK
+    real(BK), parameter :: SIXTH    = 1.0_BK/6.0_BK
 
 
-    real(BKIND), parameter :: GAMMA_TWO_THIRDS  = gamma(TWOTHD)
-    real(BKIND), parameter :: GAMMA_ONE_THIRD   = gamma(THIRD)
-    real(BKIND), parameter :: GAMMA_ONE_SIXTH   = gamma(SIXTH)
-    real(BKIND), parameter :: GAMMA_FIVE_SIXTHS = gamma(5.0_BKIND*SIXTH)
+    real(BK), parameter :: PI       = acos(-1.0_BK)
+    real(BK), parameter :: ONEOSQPI = ONE/SQRT(PI)
+    real(BK), parameter :: TWOOPI   = TWO/PI
+    real(BK), parameter :: PIO2     = PI*HALF
+    real(BK), parameter :: PIO4     = PI*FOURTH
+    real(BK), parameter :: SQPIO2   = 1.253314137315500251207882642405522626503493370304969158314961788171146827303924_BK
+    real(BK), parameter :: SQ1O2PI  = 0.3989422804014326779399460599343818684758586311649346576659258296706579258993008_BK
+    real(BK), parameter :: SQ2OPI   = 0.7978845608028653558798921198687637369517172623298693153318516593413158517986017_BK
+    real(BK), parameter :: SQ2O2    = 0.707106781186547524400844362104849039284835937688474036588339868995366239231051_BK
 
-    real(BKIND), parameter :: J0_ROOTS(2,16) = reshape([real(BKIND) :: &
+    real(BK), parameter :: THPIO4   = 2.35619449019234492885_BK
+    real(BK), parameter :: SQ2PI    = 2.5066282746310007_BK
+
+
+    real(BK), parameter :: GAMMA_TWO_THIRDS  = gamma(TWOTHD)
+    real(BK), parameter :: GAMMA_ONE_THIRD   = gamma(THIRD)
+    real(BK), parameter :: GAMMA_ONE_SIXTH   = gamma(SIXTH)
+    real(BK), parameter :: GAMMA_FIVE_SIXTHS = gamma(5.0_BK*SIXTH)
+
+    real(BK), parameter :: J0_ROOTS(2,16) = reshape([real(BK) :: &
                                                     2.4048255576957730, -1.176691651530894e-16, &
                                                     3.8317059702075125, -1.5269184090088067e-16, &
                                                     5.5200781102863110, 8.088597146146722e-17, &
@@ -55,7 +54,7 @@ module bessels_constants
                                                     24.352471530749302, 9.169067133951066e-16, &
                                                     25.903672087618382, 4.894530726419825e-16], [2,16])
 
-    real(BKIND), parameter :: J1_ROOTS(2,16) = reshape([real(BKIND) :: &
+    real(BK), parameter :: J1_ROOTS(2,16) = reshape([real(BK) :: &
                                                     1.8411837813406593, 4.7898393919093694e-18, &
                                                     3.8317059702075125, -1.5269184090088067e-16, &
                                                     5.3314427735250325, 1.5109105349471405e-16, &
@@ -73,15 +72,15 @@ module bessels_constants
                                                     24.311326857210776, -2.614798558537172e-16, &
                                                     25.903672087618382, 4.894530726419825e-16], [2,16])
 
-    real(BKIND), parameter :: J0_POLY_PIO2(*) = [ real(BKIND) :: &
+    real(BK), parameter :: J0_POLY_PIO2(*) = [ real(BK) :: &
         1.000000000000000, -0.25, 0.01562499999999994, -0.00043402777777725544, 6.781684026082576e-6, &
         -6.781683757550061e-8, 4.709479394601058e-10, -2.4016837144506874e-12, 9.104258208703104e-15]
 
-    real(BKIND), parameter :: J1_POLY_PIO2(*) = [ real(BKIND) :: &
+    real(BK), parameter :: J1_POLY_PIO2(*) = [ real(BK) :: &
         0.5, -0.0624999999999989, 0.002604166666657291, -5.42534721917933e-5, 6.781683542660179e-7, &
         -5.651361336587487e-9, 3.36191211106159e-11, -1.4511302591871352e-13]
 
-    real(BKIND), parameter :: J0_POLYS(14,16) = reshape([real(BKIND) :: &
+    real(BK), parameter :: J0_POLYS(14,16) = reshape([real(BK) :: &
           0.0000000000000000000, -0.5191474972894669, 0.10793870175491979, 0.05660177443794914, -0.008657669593292222, -0.0021942003590739974, 0.0002643770365942964, 4.37291931443113e-5, -4.338825419759815e-6, -5.304927679598406e-7, 4.469819175606667e-8, 4.3284827345621115e-9, -3.135111000732148e-10, -2.628876489517534e-11, &
           -0.402759395702553, 2.476919088072758e-16, 0.20137969785127532, -0.017518715285670765, -0.013352611033152278, 0.0010359438492839443, 0.00037218755624680334, -2.4952042421113972e-5, -5.776086353844158e-6, 3.374317129436161e-7, 5.727482259215452e-8, -2.9561880489355444e-9, -3.905845672635605e-10, 1.971332566705736e-11, &
           0.000000000000000000, 0.34026480655836816, -0.030820651425593214, -0.05298855286760721, 0.004631042145890388, 0.002257440229081131, -0.00017518572879518415, -4.6521091062878115e-5, 3.199785909661533e-6, 5.716500268232186e-7, -3.5112898510841466e-8, -4.684643389757727e-9, 2.562685034682206e-10, 2.7958958795750104e-11, &
@@ -100,7 +99,7 @@ module bessels_constants
           0.15672498625285222, 1.1464880342445208e-19, -0.07836249312642612, 0.0010083833270351796, 0.006501011610557426, -9.993664895655577e-5, -0.00021478298462967253, 3.511086890959515e-6, 3.7857022791122945e-6, -6.350944888510364e-8, -4.135588012575766e-8, 7.135988717747828e-10, 3.2075281131621564e-10, 2.208506585533542e-12],&
           [14,16])
 
-    real(BKIND), parameter :: J1_POLYS(14,16) = reshape([real(BKIND) :: &
+    real(BK), parameter :: J1_POLYS(14,16) = reshape([real(BK) :: &
           0.5818652242815964, 8.973834293036876e-17, -0.20511071214777496, 0.006058948324597746, 0.013801769808047723, -0.0003723170971916689, -0.0003949590750416506, 9.202953658715798e-6, 6.267292697927347e-6, -1.2681571675674473e-7, -6.319326736018798e-8, 1.057852721352679e-9, 4.839653511789343e-10, -2.1534683937074676e-11, &
           0.0, -0.402759395702553, 0.05255614585697725, 0.053410444132722765, -0.005179719245639115, -0.00223312533910116, 0.00017466429071755533, 4.6208700909637e-5, -3.0368632747366735e-6, -5.727790851165856e-7, 3.248220586398651e-8, 4.732693354840469e-9, -2.346792988667587e-10, -2.607612190048509e-11, &
           -0.34612620185379156, 2.6002760076991505e-17, 0.16697453550109428, -0.009678268542879972, -0.012099225779175138, 0.0006654009006841076, 0.0003541389011182841, -1.742720356958137e-5, -5.655294960447268e-6, 2.484316221112215e-7, 5.7101369594782676e-8, -2.2587104440771904e-9, -3.9854619701676605e-10, 1.854508641982197e-11, &
@@ -122,12 +121,86 @@ module bessels_constants
 
     contains
 
+    ! Calculation of besselj0 is done in three branches using polynomial approximations
+    !
+    ! Branch 1: x <= pi/2
+    !           besselj0 is calculated using a 9 term, even minimax polynomial
+    !
+    ! Branch 2: pi/2 < x < 26.0
+    !           besselj0 is calculated by one of 16 different degree 13 minimax polynomials
+    !           Each polynomial is an expansion around either a root or extrema of the besselj0.
+    !           This ensures accuracy near the roots. Method taken from [2]
+    !
+    ! Branch 3: x >= 26.0
+    !           besselj0 = sqrt(2/(pi*x))*beta(x)*(cos(x - pi/4 - alpha(x))
+    !           See modified expansions given in [2]. Exact coefficients are used.
+
+    elemental real(BK) function besselj0(x)
+       real(BK), intent(in) :: x
+
+       real(BK) :: ax,xinv,x2,xn,p,q,a,b,r
+       intrinsic :: sqrt
+       integer :: n
+
+       real(BK), parameter :: ppoly(*) = [ONE, -1.0_BK/16.0_BK, 53.0_BK/512.0_BK, -4447.0_BK/8192.0_BK, 3066403.0_BK/524288.0_BK, &
+                                          -896631415.0_BK/8388608.0_BK, 796754802993.0_BK/268435456.0_BK, &
+                                          -500528959023471.0_BK/4294967296.0_BK]
+       real(BK), parameter :: qpoly(*) = [-1.0_BK/8.0_BK, 25.0_BK/384.0_BK, -1073.0_BK/5120.0_BK, 375733.0_BK/229376.0_BK, &
+                                          -55384775.0_BK/2359296.0_BK, 24713030909.0_BK/46137344.0_BK, &
+                                          -7780757249041.0_BK/436207616.0_BK]
+
+       ax = abs(x)
+
+       if (ax <= PIO2) then
+
+          besselj0 = evalpoly(size(J0_POLY_PIO2), ax**2, J0_POLY_PIO2)
+
+       elseif (ax < 26.0_BK) then
+
+           n        = int(TWOOPI*ax) ! 1 < n < 16
+           r        = ax - sum(J0_ROOTS(:,n))
+           besselj0 = evalpoly(size(J0_POLYS,1), r, J0_POLYS(:,n))
+
+       elseif (ax<huge(ax)) then
+
+           xinv = ONE/ax
+           x2   = xinv**2
+
+           ! Cut to 5-th order when we know we'll have enough accuracy
+           if (ax < 120.0_BK) then
+
+               p = evalpoly(size(ppoly), x2, ppoly)
+               q = evalpoly(size(qpoly), x2, qpoly)
+
+           else
+               p = evalpoly(4, x2, ppoly(1:4))
+               q = evalpoly(4, x2, qpoly(1:4))
+
+           endif
+
+           a  = SQ2OPI * sqrt(xinv) * p
+           xn = muladd(xinv, q, -PIO4)
+
+           ! the following computes b = cos(x + xn) more accurately see src/misc.jl
+           ! b = cos_sum(x, xn)
+           b = cos(ax+xn)
+
+           besselj0 = a*b
+
+       else
+
+           besselj0 = ZERO
+
+       end if
+
+    end function besselj0
+
 
       ! cubic root function in double precision
-      elemental real(BKIND) function cbrt(x)
-         real(BKIND),   intent(in) :: x
-         real(BKIND), parameter :: c(0:23) = &
-              [real(BKIND) ::  1.5319394088521e-3, -1.8843445653409e-2, &
+      elemental real(BK) function cbrt(x)
+         real(BK),   intent(in) :: x
+         real(BK), parameter :: c(0:23) = &
+              [real(BK) ::  1.5319394088521e-3, -1.8843445653409e-2, &
                                1.0170534986000e-1, -3.1702448761286e-1, &
                                6.3520892642253e-1, -8.8106985991189e-1, &
                                1.0517503764540d0, 4.2674123235580e-1, &
@@ -141,15 +214,15 @@ module bessels_constants
                                4.1738741349777e-1, 6.7740948115980e-1 ]
 
 
-         real(BKIND), parameter :: TWO_POW_3   = 8.0_BKIND
-         real(BKIND), parameter :: TWO_POW_16  = 65536.0_BKIND
-         real(BKIND), parameter :: TWO_POW_48  = 281474976710656.0_BKIND
-         real(BKIND), parameter :: TWO_POW_M3  = ONE/TWO_POW_3
-         real(BKIND), parameter :: TWO_POW_M16 = ONE/TWO_POW_16
-         real(BKIND), parameter :: TWO_POW_M48 = ONE/TWO_POW_48
+         real(BK), parameter :: TWO_POW_3   = 8.0_BK
+         real(BK), parameter :: TWO_POW_16  = 65536.0_BK
+         real(BK), parameter :: TWO_POW_48  = 281474976710656.0_BK
+         real(BK), parameter :: TWO_POW_M3  = ONE/TWO_POW_3
+         real(BK), parameter :: TWO_POW_M16 = ONE/TWO_POW_16
+         real(BK), parameter :: TWO_POW_M48 = ONE/TWO_POW_48
 
          integer :: k
-         real(BKIND) :: w,y,u
+         real(BK) :: w,y,u
 
          if (x==ZERO) then
             cbrt = ZERO
@@ -187,5 +260,23 @@ module bessels_constants
          cbrt = y*(u+3*u*w/(w+2*u*u*u))
       end function cbrt
 
+
+    ! Evaluate polynomial sum_{i=1}^{n} (x^(k-1)*p(k))
+    pure real(BK) function evalpoly(n,x,p)
+       integer, intent(in) :: n
+       real(BK), intent(in) :: x,p(n)
+       real(BK) :: xpoly(n)
+       integer :: i
+       xpoly(1) = ONE
+       do i=2,n
+         xpoly(i) = xpoly(i-1)*x
+       end do
+       evalpoly = dot_product(xpoly,p)
+    end function evalpoly
+
+    elemental real(BK) function muladd(A,x,y) result(axpy)
+       real(BK), intent(in) :: A,x,y
+       axpy = A*x+y
+    end function muladd
 
 end module bessels_constants

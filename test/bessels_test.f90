@@ -37,13 +37,13 @@ program bessels_test
         real(BK), parameter :: xmax =  1e+6_BK
         real(real64), allocatable :: x(:),intrin(:),packge(:),z(:)
         integer :: i
-        real(real64) :: time,c_start,c_end
+        real(real64) :: time,timep,c_start,c_end
         allocate(x(nsize),intrin(nsize),packge(nsize),z(ntest))
 
         call random_number(x)
         x    = xmin*(ONE-x) + xmax*x
 
-        time = 0.0_real64
+        time = ZERO
         do i=1,ntest
             call cpu_time(c_start)
             intrin = bessel_j0(x)
@@ -53,15 +53,17 @@ program bessels_test
         end do
         print "('INTRINSIC time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*time/(nsize*ntest),sum(z)
 
-        time = 0.0_real64
+        timep = ZERO
         do i=1,ntest
             call cpu_time(c_start)
             packge = besselj0(x)
             call cpu_time(c_end)
             z(i) = sum(packge)
-            time = time+c_end-c_start
+            timep = timep+c_end-c_start
         end do
-        print "('PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*time/(nsize*ntest),sum(z)
+        print "('PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
+
+        success = timep<time
 
     end function test_bessel_j0_cputime
 

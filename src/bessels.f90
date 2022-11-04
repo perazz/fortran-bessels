@@ -15,6 +15,7 @@ module bessels
     public :: besselj0
     public :: besselj1
     public :: bessely0
+    public :: bessely1
     public :: cbrt
 
     public :: ZERO,ONE,THIRD

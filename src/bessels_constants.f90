@@ -163,6 +163,36 @@ module bessels_constants
                                        6.43178256118178023184E01_BK, 1.00000000000000000000E00_BK]
 
 
+    real(BK), parameter :: PP_j1(*) = [1.00000000000000000254E00_BK, 5.21451598682361504063E00_BK, &
+                                       8.42404590141772420927E00_BK, 5.11207951146807644818E00_BK, &
+                                       1.12719608129684925192E00_BK, 7.31397056940917570436E-2_BK, &
+                                       7.62125616208173112003E-4_BK]
+
+    real(BK), parameter :: PQ_j1(*) = [9.99999999999999997461E-1_BK, 5.20982848682361821619E00_BK, &
+                                       8.39985554327604159757E00_BK, 5.07386386128601488557E00_BK, &
+                                       1.10514232634061696926E00_BK, 6.88455908754495404082E-2_BK, &
+                                       5.71323128072548699714E-4_BK]
+
+    real(BK), parameter :: QP_j1(*) = [2.52070205858023719784E01_BK, 2.11688757100572135698E2_BK, &
+                                       5.97489612400613639965E02_BK, 7.10856304998926107277E2_BK, &
+                                       3.66779609360150777800E02_BK, 7.58238284132545283818E1_BK, &
+                                       4.98213872951233449420E00_BK, 5.10862594750176621635E-2_BK]
+
+    real(BK), parameter :: QQ_j1(*) = [3.36093607810698293419E02_BK, 2.82619278517639096600E03_BK, &
+                                       7.99704160447350683650E03_BK, 9.56231892404756170795E03_BK, &
+                                       4.98641058337653607651E03_BK, 1.05644886038262816351E03_BK, &
+                                       7.42373277035675149943E01_BK, ONE]
+
+    real(BK), parameter :: YP_y1(*) = [-7.78877196265950026825E17_BK, 2.02439475713594898196E17_BK, &
+                                       -8.12770255501325109621E15_BK, 1.14509511541823727583E14_BK, &
+                                       -6.47355876379160291031E11_BK, 1.26320474790178026440E09_BK]
+
+    real(BK), parameter :: YQ_y1(*) = [3.97270608116560655612E18_BK, 6.87141087355300489866E16_BK, &
+                                       6.20557727146953693363E14_BK, 3.88231277496238566008E12_BK, &
+                                       1.87601316108706159478E10_BK, 7.34811944459721705660E07_BK, &
+                                       2.35564092943068577943E05_BK, 5.94301592346128195359E02_BK, &
+                                       ONE]
+
     contains
 
     ! Calculation of besselj0 is done in three branches using polynomial approximations
@@ -265,7 +295,7 @@ module bessels_constants
 
        if (ax<=PIO2) then
 
-           besselj1 = evalpoly(size(J1_POLY_PIO2), ax**2, J1_POLY_PIO2)
+           besselj1 = ax*s*evalpoly(size(J1_POLY_PIO2), ax**2, J1_POLY_PIO2)
 
        elseif (ax <= 26.0_BK) then
 
@@ -360,7 +390,7 @@ module bessels_constants
           z = x**2
 
           ! TODO: replace the two polynomials with a single one
-          w = evalpoly(size(YP_y0),z,YP_y0) / evalpoly(size(YQ_y0),z,YQ_y0)
+          w = evalpoly(size(YP_Y0),z,YP_Y0) / evalpoly(size(YQ_Y0),z,YQ_Y0)
           bessely0 = w + TWOOPI * log(x) * besselj0(x)
 
        elseif (x<25.0_BK) then
@@ -369,8 +399,8 @@ module bessels_constants
           z = w**2
 
           ! TODO: replace the two polynomials with a single one
-          p = evalpoly(size(PP_Y0), z, PP_Y0) / evalpoly(size(PQ_Y0), z, PQ_y0)
-          q = evalpoly(size(QP_Y0), z, QP_y0) / evalpoly(size(QQ_Y0), z, QQ_y0)
+          p = evalpoly(size(PP_Y0), z, PP_Y0) / evalpoly(size(PQ_Y0), z, PQ_Y0)
+          q = evalpoly(size(QP_Y0), z, QP_y0) / evalpoly(size(QQ_Y0), z, QQ_Y0)
           xn = x - PIO4
           p = p * sin(xn) + w * q * cos(xn)
           bessely0 = p * SQ2OPI / sqrt(x)
@@ -399,6 +429,79 @@ module bessels_constants
        endif
 
     end function bessely0
+
+
+    ! Bessel functions of the second kind of order one, ``Y_1(x)``
+    ! Calculation of bessely1 is done similar to bessely0
+    !
+    elemental real(BK) function bessely1(x)
+       real(BK), intent(in) :: x
+
+       real(BK) :: z,w,p,q,xn,xinv,x2,a,b
+       intrinsic :: sqrt
+
+       real(BK), parameter :: ppoly(8) = [ONE, 3.0_BK/16.0_BK, -99.0_BK/512.0_BK, 6597.0_BK/8192.0_BK, &
+                                          -4057965.0_BK/524288.0_BK, 1113686901.0_BK/8388608.0_BK, &
+                                          -951148335159.0_BK/268435456.0_BK, 581513783771781.0_BK/4294967296.0_BK]
+
+       real(BK), parameter :: qpoly(7) = [3.0_BK/8.0_BK, -21.0_BK/128.0_BK, 1899.0_BK/5120.0_BK, &
+                                          -543483.0_BK/229376.0_BK, 8027901.0_BK/262144.0_BK, &
+                                          -30413055339.0_BK/46137344.0_BK, 9228545313147.0_BK/436207616.0_BK]
+
+       ! Handle
+       if (x<ZERO) then
+
+          bessely1 = ieee_value(bessely1,ieee_quiet_nan)
+
+       elseif (x==ZERO) then
+
+          bessely1 = -huge(bessely1)
+
+       elseif (x<=FIVE) then
+
+          z = x**2
+
+          ! TODO: replace the two polynomials with a single one
+          w = x*evalpoly(size(YP_Y1),z,YP_Y1) / evalpoly(size(YQ_Y1),z,YQ_Y1)
+          bessely1 = w + TWOOPI * (besselj1(x)*log(x) - ONE/x)
+
+
+       elseif (x<25.0_BK) then
+
+          w = FIVE / x
+          z = w**2
+
+          ! TODO: replace the two polynomials with a single one
+          p = evalpoly(size(PP_J1), z, PP_J1) / evalpoly(size(PQ_j1), z, PQ_J1)
+          q = evalpoly(size(QP_J1), z, QP_J1) / evalpoly(size(QQ_j1), z, QQ_j1)
+          xn = x - THPIO4
+          p = p * sin(xn) + w * q * cos(xn)
+          bessely1 = p * SQ2OPI / sqrt(x)
+
+       elseif (x<huge(bessely1)) then
+
+          xinv = ONE/x
+          x2 = xinv**2
+          if (x < 130.0_BK) then
+              p = evalpoly(8, x2, ppoly)
+              q = evalpoly(7, x2, qpoly)
+          else
+              p = evalpoly(4, x2, ppoly)
+              q = evalpoly(4, x2, qpoly)
+          endif
+
+          a  = SQ2OPI * sqrt(xinv) * p
+          xn = muladd(xinv, q, -3*PIO4)
+          b = sin(x+xn)
+          bessely1 = a*b
+
+       else
+
+          bessely1 = ZERO
+
+       endif
+
+    end function bessely1
 
 
     ! cubic root function in double precision

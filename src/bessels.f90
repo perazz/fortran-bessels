@@ -8,7 +8,16 @@ module bessels
 
 
     implicit none
-    public
+    private
+
+    public :: BK,BSIZE
+
+    public :: besselj0
+    public :: besselj1
+    public :: bessely0
+    public :: cbrt
+
+    public :: ZERO,ONE,THIRD
 
 
 !#

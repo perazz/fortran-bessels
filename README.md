@@ -3,9 +3,12 @@ Fortran port (stub) of the [Bessels.jl](https://github.com/heltonmc/Bessels.jl.g
 
 Building
 
-Currently, only the `besselj0(x)` and `besselj1(x)` functions are available. It is in the `bessel_constants` module. 
+Currently available functions are in the `bessel_constants` module: 
+- `besselj0(x)`
+- `besselj1(x)`
+- `bessely0(x)`
 
-A simple build can be achieved by running 
+A simple build can be achieved by running: 
 
 ```
 gfortran -ffree-line-length-none -O3 -march=native -ffast-math src/bessels_constants.f90 src/bessels.f90 test/bessels_test.f90 -o bessels_test.exe

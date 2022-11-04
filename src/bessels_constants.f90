@@ -1,5 +1,6 @@
 module bessels_constants
     use iso_fortran_env
+    use ieee_arithmetic, only: ieee_quiet_nan,ieee_value
     implicit none
     public
 
@@ -10,6 +11,7 @@ module bessels_constants
     real(BK), parameter :: ONE      = 1.00_BK
     real(BK), parameter :: TWO      = 2.00_BK
     real(BK), parameter :: FOUR     = 4.00_BK
+    real(BK), parameter :: FIVE     = 5.00_BK
     real(BK), parameter :: HALF     = 0.50_BK
     real(BK), parameter :: FOURTH   = 0.25_BK
     real(BK), parameter :: TWOTHD   = 2.0_BK/3.0_BK
@@ -128,6 +130,37 @@ module bessels_constants
           -0.1618382095526585_BK, 7.115722920799028e-17_BK, 0.08078219522574913_BK, -0.0011038527651152986_BK, -0.006686444726790514_BK, 0.00010870535083026479_BK, 0.00022030197347228358_BK, -3.791805814546456e-6_BK, -3.871147931227952e-6_BK, 6.80607764766372e-8_BK, 4.2160129307780366e-8_BK, -7.460427055677985e-10_BK, -3.0872139357605097e-10_BK, 6.24158293622982e-12_BK, &
           0.0_BK, 0.15672498625285222_BK, -0.0030251499811055965_BK, -0.026004046442225856_BK, 0.0004996832448037306_BK, 0.001288697907658241_BK, -2.457760943647847e-5_BK, -3.02856199504406e-5_BK, 5.715983781675481e-7_BK, 4.136275513873783e-7_BK, -7.703846567878601e-9_BK, -3.6853569596797437e-9_BK, 6.676439988396374e-11_BK, 2.277101500922319e-11_BK],&
           [14,16])
+
+    real(BK), parameter :: YP_Y0(8) = [-1.84950800436986690637E16_BK, 4.42733268572569800351E16_BK, &
+                                       -3.46628303384729719441E15_BK, 8.75906394395366999549E13_BK, &
+                                       -9.82136065717911466409E11_BK, 5.43526477051876500413E9_BK,  &
+                                       -1.46639295903971606143E07_BK, 1.55924367855235737965E4_BK]
+
+    real(BK), parameter :: YQ_Y0(8) = [2.50596256172653059228E17_BK, 3.17157752842975028269E15_BK, &
+                                       2.02979612750105546709E13_BK, 8.64002487103935000337E10_BK, &
+                                       2.68919633393814121987E08_BK, 6.26107330137134956842E05_BK, &
+                                       1.04128353664259848412E03_BK, 1.00000000000000000000E00_BK]
+
+
+    real(BK), parameter :: PP_Y0(7) = [9.99999999999999997821E-1_BK, 5.30324038235394892183E00_BK, &
+                                       8.74716500199817011941E00_BK, 5.44725003058768775090E00_BK, &
+                                       1.23953371646414299388E00_BK, 8.28352392107440799803E-2_BK, &
+                                       7.96936729297347051624E-4_BK]
+
+    real(BK), parameter :: PQ_Y0(7) = [1.00000000000000000218E00_BK, 5.30605288235394617618E00_BK, &
+                                       8.76190883237069594232E00_BK, 5.47097740330417105182E00_BK, &
+                                       1.25352743901058953537E00_BK, 8.56288474354474431428E-2_BK, &
+                                       9.24408810558863637013E-4_BK]
+
+    real(BK), parameter :: QP_y0(8) = [-6.05014350600728481186E00_BK, -5.14105326766599330220E01_BK, &
+                                       -1.47077505154951170175E02_BK, -1.77681167980488050595E02_BK, &
+                                       -9.32060152123768231369E01_BK, -1.95539544257735972385E01_BK, &
+                                       -1.28252718670509318512E00_BK, -1.13663838898469149931E-2_BK]
+
+    real(BK), parameter :: QQ_y0(8) = [2.42005740240291393179E02_BK, 2.06209331660327847417E03_BK, &
+                                       5.93072701187316984827E03_BK, 7.24046774195652478189E03_BK, &
+                                       3.88240183605401609683E03_BK, 8.56430025976980587198E02_BK, &
+                                       6.43178256118178023184E01_BK, 1.00000000000000000000E00_BK]
 
 
     contains
@@ -274,6 +307,98 @@ module bessels_constants
 
 
     end function besselj1
+
+    ! Bessel functions of the second kind of order zero
+    ! Calculation of bessely0 is done in three branches using polynomial approximations
+    !
+    ! Branch 1: x <= 5.0
+    !           bessely0 = R(x^2) + 2*log(x)*besselj0(x) / pi
+    !           where r1 and r2 are zeros of J0 and P3 and Q8 are a 3 and 8 degree polynomial respectively
+    !           Polynomial coefficients are from [1] which is based on [2]. For tiny arugments the power
+    !           series  expansion is used.
+    !
+    ! Branch 2: 5.0 < x < 25.0
+    !           bessely0 = sqrt(2/(pi*x))*(sin(x - pi/4)*R7(x) - cos(x - pi/4)*R8(x))
+    !           Hankel's asymptotic expansion is used where R7 and R8 are rational functions (Pn(x)/Qn(x))
+    !           of degree 7 and 8 respectively See section 4 of [3] for more details and [1] for coefficients
+    !           of polynomials
+    !
+    ! Branch 3: x >= 25.0
+    !           bessely0 = sqrt(2/(pi*x))*beta(x)*(sin(x - pi/4 - alpha(x))
+    !           See modified expansions given in [3]. Exact coefficients are used.
+    !
+    ! [1] https://github.com/deepmind/torch-cephes
+    ! [2] Cephes Math Library Release 2.8:  June, 2000 by Stephen L. Moshier
+    ! [3] Harrison, John. "Fast and accurate Bessel function computation.", 2009 19th IEEE Symposium on
+    !     Computer Arithmetic. IEEE, 2009.
+    !
+    elemental real(BK) function bessely0(x)
+       real(BK), intent(in) :: x
+
+       real(BK) :: z,w,p,q,xn,xinv,x2,a,b
+       intrinsic :: sqrt
+
+       real(BK), parameter :: ppoly(8) = [ONE, -1.0_BK/16.0_BK, 53.0_BK/512.0_BK, -4447.0_BK/8192.0_BK, &
+                                          3066403.0_BK/524288.0_BK, -896631415.0_BK/8388608.0_BK, &
+                                          796754802993.0_BK/268435456.0_BK, -500528959023471.0_BK/4294967296.0_BK]
+
+       real(BK), parameter :: qpoly(7) = [-1.0_BK/8.0_BK, 25.0_BK/384.0_BK, -1073.0_BK/5120.0_BK, &
+                                          375733.0_BK/229376.0_BK, -55384775.0_BK/2359296.0_BK, &
+                                          24713030909.0_BK/46137344.0_BK, -7780757249041.0_BK/436207616.0_BK]
+
+       ! Handle
+       if (x<ZERO) then
+
+          bessely0 = ieee_value(bessely0,ieee_quiet_nan)
+
+       elseif (x==ZERO) then
+
+          bessely0 = -huge(bessely0)
+
+       elseif (x<=FIVE) then
+
+          z = x**2
+
+          ! TODO: replace the two polynomials with a single one
+          w = evalpoly(size(YP_y0),z,YP_y0) / evalpoly(size(YQ_y0),z,YQ_y0)
+          bessely0 = w + TWOOPI * log(x) * besselj0(x)
+
+       elseif (x<25.0_BK) then
+
+          w = FIVE / x
+          z = w**2
+
+          ! TODO: replace the two polynomials with a single one
+          p = evalpoly(size(PP_Y0), z, PP_Y0) / evalpoly(size(PQ_Y0), z, PQ_y0)
+          q = evalpoly(size(QP_Y0), z, QP_y0) / evalpoly(size(QQ_Y0), z, QQ_y0)
+          xn = x - PIO4
+          p = p * sin(xn) + w * q * cos(xn)
+          bessely0 = p * SQ2OPI / sqrt(x)
+
+       elseif (x<huge(bessely0)) then
+
+          xinv = ONE/x
+          x2 = xinv**2
+          if (x < 120.0_BK) then
+              p = evalpoly(8, x2, ppoly)
+              q = evalpoly(7, x2, qpoly)
+          else
+              p = evalpoly(4, x2, ppoly)
+              q = evalpoly(4, x2, qpoly)
+          endif
+
+          a  = SQ2OPI * sqrt(xinv) * p
+          xn = muladd(xinv, q, -PIO4)
+          b = sin(x+xn)
+          bessely0 = a*b
+
+       else
+
+          bessely0 = ZERO
+
+       endif
+
+    end function bessely0
 
 
     ! cubic root function in double precision

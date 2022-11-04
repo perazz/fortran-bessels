@@ -14,10 +14,10 @@ gfortran -ffree-line-length-none -O3 -march=native -ffast-math src/bessels_const
 These are the results of a sample performance test on an M1 Mac with gfortran 12.1.0: 
 
 ```
-[bessel_j0] INTRINSIC time used:   68.2944 ns/eval, sum(z)=49.637464310454263
-[bessel_j0] PACKAGE   time used:   32.5004 ns/eval, sum(z)=49.637464310574316
-[bessel_j1] INTRINSIC time used:   65.5116 ns/eval, sum(z)=-156.97177970030080
-[bessel_j1] PACKAGE   time used:   33.2118 ns/eval, sum(z)=-75.848986598550923
+[bessel_j0] INTRINSIC time used:   45.9751 ns/eval, sum(z)=99.706555563648948
+[bessel_j0] PACKAGE   time used:   26.3218 ns/eval, sum(z)=99.706555564603875
+[bessel_j1] INTRINSIC time used:   45.6402 ns/eval, sum(z)=48.275497720728119
+[bessel_j1] PACKAGE   time used:   26.2781 ns/eval, sum(z)=48.275497722514878
 ```
 
 this package is approximately *2x faster* than gcc's intrinsic function.

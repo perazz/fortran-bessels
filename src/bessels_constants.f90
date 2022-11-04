@@ -180,12 +180,12 @@ module bessels_constants
            ! Cut to 5-th order when we know we'll have enough accuracy
            if (ax < 120.0_BK) then
 
-               p = evalpoly(size(ppoly), x2, ppoly)
-               q = evalpoly(size(qpoly), x2, qpoly)
+               p = evalpoly8(x2, ppoly)
+               q = evalpoly7(x2, qpoly)
 
            else
-               p = evalpoly(4, x2, ppoly(1:4))
-               q = evalpoly(4, x2, qpoly(1:4))
+               p = evalpoly4(x2, ppoly(1:4))
+               q = evalpoly4(x2, qpoly(1:4))
 
            endif
 
@@ -193,7 +193,6 @@ module bessels_constants
            xn = muladd(xinv, q, -PIO4)
 
            ! the following computes b = cos(x + xn) more accurately see src/misc.jl
-           ! b = cos_sum(x, xn)
            b = cos(ax+xn)
 
            besselj0 = a*b
@@ -206,22 +205,92 @@ module bessels_constants
 
     end function besselj0
 
+    !
+    ! Calculation of besselj1 is done in a similar way as besselj0.
+    ! For details on similarities:
+    ! Harrison, John. "Fast and accurate Bessel function computation." 2009 19th IEEE Symposium on Computer
+    !                 Arithmetic. IEEE, 2009.
 
-      ! cubic root function in double precision
-      elemental real(BK) function cbrt(x)
-         real(BK),   intent(in) :: x
-         real(BK), parameter :: c(0:23) = [ 1.5319394088521e-3_BK, -1.8843445653409e-2_BK, &
-                                            1.0170534986000e-1_BK, -3.1702448761286e-1_BK, &
-                                            6.3520892642253e-1_BK, -8.8106985991189e-1_BK, &
-                                            1.0517503764540e0_BK, 4.2674123235580e-1_BK, &
-                                            1.5079083659190e-5_BK, -3.7095709111375e-4_BK, &
-                                            4.0043972242353e-3_BK, -2.4964114079723e-2_BK, &
-                                            1.0003913718511e-1_BK, -2.7751961573273e-1_BK, &
-                                            6.6256121926465e-1_BK, 5.3766026150315e-1_BK, &
-                                            1.4842542902609e-7_BK, -7.3027601203435e-6_BK, &
-                                            1.5766326109233e-4_BK, -1.9658008013138e-3_BK, &
-                                            1.5755176844105e-2_BK, -8.7413201405100e-2_BK, &
-                                            4.1738741349777e-1_BK, 6.7740948115980e-1_BK ]
+    elemental real(BK) function besselj1(x)
+       real(BK), intent(in) :: x
+
+       real(BK) :: ax,xinv,x2,xn,p,q,a,b,r,s
+       intrinsic :: sqrt
+       integer :: n
+
+       real(BK), parameter :: ppoly(8) = [ONE, 3.0_BK/16.0_BK, &
+                                          -99.0_BK/512.0_BK, 6597.0_BK/8192.0_BK, &
+                                          -4057965.0_BK/524288.0_BK, 1113686901.0_BK/8388608.0_BK, &
+                                          -951148335159.0_BK/268435456.0_BK, 581513783771781.0_BK/4294967296.0_BK]
+
+       real(BK), parameter :: qpoly(7) = [3.0_BK/8.0_BK, -21.0_BK/128.0_BK, 1899.0_BK/5120.0_BK, &
+                                          -543483.0_BK/229376.0_BK, 8027901.0_BK/262144.0_BK, &
+                                          -30413055339.0_BK/46137344.0_BK, 9228545313147.0_BK/436207616.0_BK]
+
+       ax = abs(x)
+       s  = sign(ONE,x)
+
+       if (ax<=PIO2) then
+
+           besselj1 = evalpoly(size(J1_POLY_PIO2), ax**2, J1_POLY_PIO2)
+
+       elseif (ax <= 26.0_BK) then
+
+           n        = int(TWOOPI*ax) ! 1 < n < 16
+           r        = ax - sum(J1_ROOTS(:,n))
+           besselj1 = s*evalpoly(size(J1_POLYS,1), r, J1_POLYS(:,n))
+
+       elseif (ax<huge(ax)) then
+
+           xinv = ONE/ax
+           x2   = xinv**2
+
+           ! Cut to 5-th order when we know we'll have enough accuracy
+           if (ax < 120.0_BK) then
+
+               p = evalpoly8(x2, ppoly)
+               q = evalpoly7(x2, qpoly)
+
+           else
+
+               p = evalpoly4(x2, ppoly(1:4))
+               q = evalpoly4(x2, qpoly(1:4))
+
+           endif
+
+           a  = SQ2OPI * sqrt(xinv) * p
+           xn = muladd(xinv, q, -3*PIO4)
+
+           ! the following computes b = cos(x + xn) more accurately see src/misc.jl
+           b = cos(ax+xn)
+
+           besselj1 = s*a*b
+
+       else
+
+           besselj1 = ZERO
+
+       end if
+
+
+    end function besselj1
+
+
+    ! cubic root function in double precision
+    elemental real(BK) function cbrt(x)
+       real(BK),   intent(in) :: x
+       real(BK), parameter :: c(0:23) = [ 1.5319394088521e-3_BK, -1.8843445653409e-2_BK, &
+                                          1.0170534986000e-1_BK, -3.1702448761286e-1_BK, &
+                                          6.3520892642253e-1_BK, -8.8106985991189e-1_BK, &
+                                          1.0517503764540e+0_BK,  4.2674123235580e-1_BK, &
+                                          1.5079083659190e-5_BK, -3.7095709111375e-4_BK, &
+                                          4.0043972242353e-3_BK, -2.4964114079723e-2_BK, &
+                                          1.0003913718511e-1_BK, -2.7751961573273e-1_BK, &
+                                          6.6256121926465e-1_BK,  5.3766026150315e-1_BK, &
+                                          1.4842542902609e-7_BK, -7.3027601203435e-6_BK, &
+                                          1.5766326109233e-4_BK, -1.9658008013138e-3_BK, &
+                                          1.5755176844105e-2_BK, -8.7413201405100e-2_BK, &
+                                          4.1738741349777e-1_BK,  6.7740948115980e-1_BK ]
 
 
          real(BK), parameter :: TWO_POW_3   = 8.0_BK
@@ -268,7 +337,7 @@ module bessels_constants
                    c(k+4))*w + c(k+5))*w +  c(k+6))*w+ c(k+7)
 
          cbrt = y*(u+3*u*w/(w+2*u*u*u))
-      end function cbrt
+    end function cbrt
 
 
     ! Evaluate polynomial sum_{i=1}^{n} (x^(k-1)*p(k)) using Horner's method
@@ -282,6 +351,27 @@ module bessels_constants
          y = p(i) + y*x
        end do
     end function
+
+    pure real(BK) function evalpoly8(x,p) result(y)
+       real(BK), intent(in) :: x,p(8)
+       y = ((((((p(8)*x+p(7))*x+p(6))*x+p(5))*x+p(4))*x+p(3))*x+p(2))*x+p(1)
+    end function evalpoly8
+
+    pure real(BK) function evalpoly7(x,p) result(y)
+       real(BK), intent(in) :: x,p(7)
+       y = (((((p(7)*x+p(6))*x+p(5))*x+p(4))*x+p(3))*x+p(2))*x+p(1)
+    end function evalpoly7
+
+
+    pure real(BK) function evalpoly5(x,p) result(y)
+       real(BK), intent(in) :: x,p(5)
+       y = (((p(5)*x+p(4))*x+p(3))*x+p(2))*x+p(1)
+    end function evalpoly5
+
+    pure real(BK) function evalpoly4(x,p) result(y)
+       real(BK), intent(in) :: x,p(4)
+       y = ((p(4)*x+p(3))*x+p(2))*x+p(1)
+    end function evalpoly4
 
     elemental real(BK) function muladd(A,x,y) result(axpy)
        real(BK), intent(in) :: A,x,y

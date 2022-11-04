@@ -213,7 +213,7 @@ module bessels_constants
          real(BK), parameter :: c(0:23) = [ 1.5319394088521e-3_BK, -1.8843445653409e-2_BK, &
                                             1.0170534986000e-1_BK, -3.1702448761286e-1_BK, &
                                             6.3520892642253e-1_BK, -8.8106985991189e-1_BK, &
-                                            1.0517503764540d0_BK, 4.2674123235580e-1_BK, &
+                                            1.0517503764540e0_BK, 4.2674123235580e-1_BK, &
                                             1.5079083659190e-5_BK, -3.7095709111375e-4_BK, &
                                             4.0043972242353e-3_BK, -2.4964114079723e-2_BK, &
                                             1.0003913718511e-1_BK, -2.7751961573273e-1_BK, &
@@ -271,18 +271,17 @@ module bessels_constants
       end function cbrt
 
 
-    ! Evaluate polynomial sum_{i=1}^{n} (x^(k-1)*p(k))
-    pure real(BK) function evalpoly(n,x,p)
+    ! Evaluate polynomial sum_{i=1}^{n} (x^(k-1)*p(k)) using Horner's method
+    pure function evalpoly(n,x,p) result(y)
        integer, intent(in) :: n
-       real(BK), intent(in) :: x,p(n)
-       real(BK) :: xpoly(n)
+       real(BK), intent(in) :: x, p(n)
+       real(BK) :: y
        integer :: i
-       xpoly(1) = ONE
-       do i=2,n
-         xpoly(i) = xpoly(i-1)*x
+       y = p(n)
+       do i = n-1,1,-1
+         y = p(i) + y*x
        end do
-       evalpoly = dot_product(xpoly,p)
-    end function evalpoly
+    end function
 
     elemental real(BK) function muladd(A,x,y) result(axpy)
        real(BK), intent(in) :: A,x,y

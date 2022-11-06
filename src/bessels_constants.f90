@@ -308,6 +308,53 @@ module bessels_constants
                                        2.88448064302447607e1_BK, 2.27912927104139732e0_BK, &
                                        2.50358186953478678e-2_BK]
 
+    real(BK), parameter :: besseli0_small_coefs(*) = [0.9999999999999998_BK, 0.2500000000000052_BK, &
+                                                      0.027777777777755364_BK, 0.001736111111149161_BK, &
+                                                      6.94444444107536e-05_BK, 1.9290123635366806e-6_BK, &
+                                                      3.9367592765038015e-8_BK, 6.151201574092085e-10_BK, &
+                                                      7.593827956729909e-12_BK, 7.596677643342155e-14_BK, &
+                                                      6.255282299620455e-16_BK, 4.470993793303175e-18_BK, &
+                                                      2.1859737023077178e-20_BK, 2.0941557335286373e-22_BK]
+
+    real(BK), parameter :: besseli0_med_coefs(*) = [0.3989422804014326_BK, 0.04986778505064754_BK, &
+                                                    0.028050628512954097_BK, 0.02921968830978531_BK, &
+                                                    0.04466889626137549_BK, 0.10220642174207666_BK, &
+                                                    -0.9937439085650689_BK, 91.25330271974727_BK, &
+                                                    -4901.408890977662_BK, 199209.2752981982_BK, &
+                                                    -6.181516298413396e6_BK, 1.4830278710991925e8_BK, &
+                                                    -2.7695254643719645e9_BK, 4.0351394830842026e10_BK, &
+                                                    -4.5768930327229974e11_BK, 4.0134844243070063e12_BK, &
+                                                    -2.6862476523182016e13_BK, 1.3437999451218112e14_BK, &
+                                                    -4.856333741437621e14_BK, 1.1962791200680235e15_BK, &
+                                                    -1.796269414464399e15_BK, 1.239942074380968e15_BK]
+
+
+    real(BK), parameter :: besseli0_large_coefs(*) = [0.3989422804014327_BK, 0.04986778505003549_BK, &
+                                                      0.028050629664438713_BK, 0.029218603406797997_BK, &
+                                                      0.045199090067282434_BK]
+
+
+    real(BK), parameter :: besseli1_small_coefs(*) = [ &
+                            0.08333333333333334_BK, 0.006944444444444374_BK, 0.00034722222222248526_BK, &
+                            1.1574074073690356e-5_BK, 2.7557319253050506e-7_BK, 4.920949730519126e-9_BK, &
+                            6.834656365321179e-11_BK, 7.593985414952446e-13_BK, 6.904652315442046e-15_BK, &
+                            5.2213850252454655e-17_BK, 3.405120412140281e-19_BK, 1.6398527256182257e-21_BK, &
+                            1.3161876924566675e-23_BK]
+
+    real(BK), parameter :: besseli1_med_coefs(*) = [ &
+                            0.39894228040143276_BK, -0.149603355151029_BK, -0.04675104787903509_BK, &
+                            -0.04090746353279043_BK, -0.05744911840910781_BK,-0.12283724006390319_BK, &
+                            1.0023632527650936_BK, -94.90954045770921_BK, 5084.06899084327_BK, &
+                            -206253.5613716743_BK, 6.387439538535799e6_BK, -1.529244018923123e8_BK, &
+                            2.849523551208316e9_BK, -4.141884344471782e10_BK, 4.6860149658304974e11_BK, &
+                            -4.097852944580042e12_BK, 2.7345051110005453e13_BK, -1.3634833112030364e14_BK, &
+                            4.909983186948892e14_BK, -1.2048200837913132e15_BK, 1.8014682382937435e15_BK, &
+                            -1.2377987428989558e15_BK]
+
+    real(BK), parameter :: besseli1_large_coefs(*) = [ &
+                            0.39894228040143265, -0.14960335515036183, -0.0467510491854453, &
+                            -0.04090618769936314, -0.05808395099511361]
+
     contains
 
     ! Calculation of besselj0 is done in three branches using polynomial approximations
@@ -706,6 +753,76 @@ module bessels_constants
         end if
 
     end function besselk1
+
+    ! Modified Bessel function of the first kind of order zero, ``I_0(x)``.
+    !
+    !  Calculation of besseli0 is done in two branches using polynomial approximations [1]
+    !
+    !  Branch 1: x < 7.75
+    !            besseli0 = [x/2]^2 P16([x/2]^2)
+    !  Branch 2: x >= 7.75
+    !            sqrt(x) * exp(-x) * besseli0(x) = P22(1/x)
+    !            where P16 and P22 are a 16 and 22 degree polynomial respectively.
+    !
+    !  Remez.jl is then used to approximate the polynomial coefficients of
+    !  P22(y) = sqrt(1/y) * exp(-inv(y)) * besseli0(inv(y))
+    !  N,D,E,X = ratfn_minimax(g, (1/1e6, 1/7.75), 21, 0)
+    !
+    elemental real(BK) function besseli0(x)
+       real(BK), intent(in) :: x
+       real(BK) :: ax,a,s
+        ax = abs(x)
+
+        if (ax < 7.75_BK) then
+            a = FOURTH*ax**2
+            besseli0 = a*evalpoly(size(besseli0_small_coefs), a, besseli0_small_coefs) + ONE
+        else
+            a = exp(HALF*ax)
+            s = a * evalpoly(size(besseli0_med_coefs), one/ax, besseli0_med_coefs) / sqrt(ax)
+            besseli0 = a * s
+        endif
+
+    end function besseli0
+
+    ! Modified Bessel function of the first kind of order one, ``I_1(x)``.
+    !
+    ! Calculation of besseli1 is done in two branches using polynomial approximations [2]
+    !
+    !  Branch 1: x < 7.75
+    !            besseli1 = x / 2 * (1 + 1/2 * (x/2)^2 + (x/2)^4 * P13([x/2]^2)
+    !  Branch 2: x >= 7.75
+    !            sqrt(x) * exp(-x) * besseli1(x) = P22(1/x)
+    !            where P13 and P22 are a 16 and 22 degree polynomial respectively.
+    !
+    !  Remez.jl is then used to approximate the polynomial coefficients of
+    !  P13(y) = (besseli1(2 * sqrt(y)) / sqrt(y) - 1 - y/2) / y^2
+    !  N,D,E,X = ratfn_minimax(g, (1/1e6, 1/7.75), 21, 0)
+    !
+    !  A third branch is used for scaled functions for large values
+    !
+    elemental real(BK) function besseli1(x)
+       real(BK), intent(in) :: x
+
+       real(BK) :: z,inner(3),s,a
+
+       z = abs(x)
+       if (z < 7.75_BK) then
+
+           a = FOURTH*z**2
+           inner = [ONE,HALF,evalpoly(size(besseli1_small_coefs),a,besseli1_small_coefs)]
+           z = HALF*z*evalpoly(3,a,inner)
+
+       else
+
+           a = exp(HALF*z)
+           s = a*evalpoly(size(besseli1_med_coefs), one/z, besseli1_med_coefs)/sqrt(z)
+           z = a*s
+
+       end if
+
+       besseli1 = sign(ONE,x)*z
+
+   end function besseli1
 
     ! cubic root function in double precision
     elemental real(BK) function cbrt(x)

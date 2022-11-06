@@ -12,10 +12,9 @@ module bessels
 
     public :: BK,BSIZE
 
-    public :: besselj0
-    public :: besselj1
-    public :: bessely0
-    public :: bessely1
+    public :: besselj0,besselj1
+    public :: bessely0,bessely1
+    public :: besselk0,besselk1
     public :: cbrt
 
     public :: ZERO,ONE,THIRD

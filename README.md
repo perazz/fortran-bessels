@@ -10,6 +10,8 @@ Currently available functions are in the `bessel_constants` module:
 - `bessely1(x)`
 - `besselk0(x)`
 - `besselk1(x)`
+- `besseli0(x)`
+- `besseli1(x)`
 
 A simple build can be achieved by running:
 

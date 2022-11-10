@@ -329,8 +329,10 @@ program bessels_test
       real(BK), parameter :: xmax =  1e+6_BK
       real(BK), parameter :: RTOL =  1e-6_BK
       real(BK), parameter :: ATOL =  1e-10_BK
-      real(BK) :: x(NTEST),fun(NTEST),intr(NTEST),err(NTEST)
+      real(BK), allocatable, dimension(:) :: x,fun,intr,err
       integer :: i,ierr
+
+      allocate(x(NTEST),fun(NTEST),intr(0:NTEST),err(NTEST))
 
       ! Randoms in range
       call random_number(x)
@@ -406,7 +408,7 @@ program bessels_test
     logical function test_bessel_k1() result(success)
       use rjk, only: RKBESL
 
-      integer, parameter :: NTEST = 100000
+      integer, parameter :: NTEST = 10000
 
       real(BK), parameter :: xmin =   0.0_BK
 
@@ -414,8 +416,10 @@ program bessels_test
       real(BK), parameter :: xmax =  10.0_BK
       real(BK), parameter :: RTOL =  1e-6_BK
       real(BK), parameter :: ATOL =  1e-10_BK
-      real(BK) :: x(NTEST),fun(NTEST),intr(0:NTEST),err(NTEST),this(2)
+      real(BK), allocatable, dimension(:) :: x,fun,intr,err,this
       integer :: i,ierr
+
+      allocate(x(NTEST),fun(NTEST),intr(0:NTEST),err(NTEST),this(2))
 
       ! Randoms in range
       call random_number(x)
@@ -455,7 +459,7 @@ program bessels_test
         real(BK), parameter :: xmax =  600.0_BK
         real(BK), allocatable :: x(:),intrin(:),packge(:),z(:)
         integer :: i,j,ierr
-        real(BK) :: time,timep,c_start,c_end,this(2)
+        real(BK) :: time,timep,c_start,c_end
         allocate(x(nsize),intrin(nsize+1),packge(nsize),z(ntest))
 
         call random_number(x)
@@ -541,7 +545,7 @@ program bessels_test
         real(BK), parameter :: xmax =  600.0_BK
         real(BK), allocatable :: x(:),intrin(:),packge(:),z(:)
         integer :: i,j,ierr
-        real(BK) :: time,timep,c_start,c_end,this(2)
+        real(BK) :: time,timep,c_start,c_end
         allocate(x(nsize),intrin(nsize+1),packge(nsize),z(ntest))
 
         call random_number(x)
@@ -627,7 +631,7 @@ program bessels_test
         real(BK), parameter :: xmax =  100.0_BK
         real(BK), allocatable :: x(:),intrin(:),packge(:),z(:)
         integer :: i,j,ierr
-        real(BK) :: time,timep,c_start,c_end,this(2)
+        real(BK) :: time,timep,c_start,c_end
         allocate(x(nsize),intrin(nsize+1),packge(nsize),z(ntest))
 
         call random_number(x)

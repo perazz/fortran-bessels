@@ -65,17 +65,23 @@
 			<Add library="gfortran" />
 			<Add library="quadmath" />
 		</Linker>
+		<Unit filename="../src/3rd_party/ribesl.f">
+			<Option weight="0" />
+		</Unit>
+		<Unit filename="../src/3rd_party/rkbesl.f">
+			<Option weight="0" />
+		</Unit>
 		<Unit filename="../src/bessels.f90">
-			<Option weight="1" />
+			<Option weight="2" />
 		</Unit>
 		<Unit filename="../src/bessels_constants.f90">
 			<Option weight="0" />
 		</Unit>
 		<Unit filename="../src/bessels_debye.f90">
-			<Option weight="0" />
+			<Option weight="1" />
 		</Unit>
 		<Unit filename="../test/bessels_test.f90">
-			<Option weight="2" />
+			<Option weight="3" />
 		</Unit>
 		<Extensions />
 	</Project>

@@ -10,6 +10,8 @@ Currently available functions are in the `bessel_constants` module:
 - `bessely1(x)`
 - `besselk0(x)`
 - `besselk1(x)`
+- `besseli0(x)`
+- `besseli1(x)`
 
 A simple build can be achieved by running:
 
@@ -20,7 +22,6 @@ A simple build can be achieved by running:
 These are the results of a sample performance test on an M1 Mac with gfortran 12.1.0.
 For the functions where an intrinsic Fortran equivalent is available, the intrinsic version is compared against.
 For all others, the [netlib specfun](https://netlib.org/specfun/) package is employed, in the current refactoring by [Scivision](https://github.com/scivision/rpn-calc-fortran).
-For the non-fortran-intrinsic functions, this package is ludicrously faster than the netlib counterpart!
 
 ```
 [bessel_j0] INTRINSIC time used:   37.5113 ns/eval, sum(z)=9476.3324505667606
@@ -42,6 +43,6 @@ For the non-fortran-intrinsic functions, this package is ludicrously faster than
 
 ```
 
-this package is approximately *2x faster* than gcc's intrinsic function.
+this package is approximately *2x faster* than gcc's intrinsic function. For the non-fortran-intrinsic functions, this package is ludicrously faster than the netlib counterpart!
 
 

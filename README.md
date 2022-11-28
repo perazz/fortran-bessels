@@ -13,6 +13,24 @@ Currently available functions are in the `bessel_constants` module:
 - `besseli0(x)`
 - `besseli1(x)`
 
+Not yet implemented: 
+- `besselj(nu, x)`
+- `bessely(nu, x)`
+- `besseli(nu, x)`
+- `besselk(nu, x)`
+- `besselh(nu, k, x)`
+- `hankelh1(nu, x)`
+- `hankelh2(nu, x)`
+- `sphericalbesselj(nu, x)`
+- `sphericalbessely(nu, x)`
+- `Bessels.sphericalbesseli(nu, x)`
+- `Bessels.sphericalbesselk(nu, x)`
+- `airyai(x)`
+- `airyaiprime(x)`
+- `airybi(x)`
+- `airybiprime(x)`
+- `Bessels.gamma(x)`
+
 A simple build can be achieved by running:
 
 ```

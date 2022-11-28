@@ -514,7 +514,7 @@ module bessels_debye
     ! some polynomial P with coeffficients s0, s1, ...
     ! we use this function when the size of P is large (size(P) > 20) as it is more efficient
     ! this functions returns [a, ap]:
-    ! αp = evalpoly(xinv, (s(0:29))
+    ! alphap = evalpoly(xinv, (s(0:29))
     ! α  = x * evalpoly(xinv, [s(0), -s(1), -s(2)/3, -s(3)/5, -s(4)/7, ..., -s(29)/57])
     pure function split_phase_evalpoly(N, x, P) result(aap)
         integer, intent(in) :: N

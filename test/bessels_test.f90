@@ -29,6 +29,7 @@ program bessels_test
     call add_test(test_bessel_k1())
     call add_test(test_bessel_i0())
     call add_test(test_bessel_i1())
+    call add_test(test_gamma())
     call add_test(test_bessel_j0_cputime())
     call add_test(test_bessel_j1_cputime())
     call add_test(test_bessel_y0_cputime())
@@ -37,6 +38,7 @@ program bessels_test
     call add_test(test_bessel_k1_cputime())
     call add_test(test_bessel_i0_cputime())
     call add_test(test_bessel_i1_cputime())
+    call add_test(test_gamma_cputime())
 
     print 1, npassed+nfailed,npassed,nfailed
     if (nfailed>0) then
@@ -359,7 +361,7 @@ program bessels_test
          CALL RKBESL(X=x(i), ALPHA=zero, NB=1, IZE=1, BK=intr(i), NCALC=ierr)
       end do
 
-      err  = abs(fun-intr)*rewt(intr,RTOL,ATOL)
+      err  = abs(fun-intr(1:))*rewt(intr,RTOL,ATOL)
 
       success = all(err<one)
 
@@ -636,6 +638,82 @@ program bessels_test
       end if
 
     end function test_bessel_i1
+
+
+    ! Test bessel k0 function
+    logical function test_gamma() result(success)
+      use bessels_gamma
+
+      integer, parameter :: NTEST = 2000
+
+      real(BK), parameter :: xmin =  -12.0_BK
+
+      ! Limit the max x range to RKBESL validity
+      real(BK), parameter :: xmax =  12.0_BK
+      real(BK), parameter :: RTOL =  1e-6_BK
+      real(BK), parameter :: ATOL =  1e-10_BK
+      real(BK) :: x(NTEST),fun(NTEST),intr(NTEST),err(NTEST),this(2)
+      integer :: i,ierr
+
+      ! Randoms in range
+      call random_number(x)
+      x    = xmin*(ONE-x) + xmax*x
+      fun  = gamma_BK(x)
+      intr = gamma(x)
+
+      err  = abs(fun-intr(1:))*rewt(intr(1:),RTOL,ATOL)
+
+      success = all(err<one)
+
+      if (.not.success) then
+         do i=1,NTEST
+            if (err(i)>=one) &
+            print *, '[bessel_gamma] x=',x(i),' package=',fun(i),' intrinsic=',intr(i),' relerr=',err(i)
+         end do
+      end if
+
+    end function test_gamma
+
+
+    ! Test bessel j0 cpu time
+    logical function test_gamma_cputime() result(success)
+        use bessels_gamma
+
+        integer, parameter :: nsize = 100000
+        integer, parameter :: ntest = 100
+        real(BK), parameter :: xmin = -50.0_BK
+        real(BK), parameter :: xmax =  50.0_BK
+        real(BK), allocatable :: x(:),intrin(:),packge(:),z(:)
+        integer :: i,j,ierr
+        real(BK) :: time,timep,c_start,c_end
+        allocate(x(nsize),intrin(nsize),packge(nsize),z(ntest))
+
+        call random_number(x)
+        x    = xmin*(ONE-x) + xmax*x
+
+        time = ZERO
+        do i=1,ntest
+            call cpu_time(c_start)
+            intrin = gamma(x)
+            call cpu_time(c_end)
+            z(i) = sum(intrin)
+            time = time+c_end-c_start
+        end do
+        print "('[bessel_gamma] INTRINSIC    time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*time/(nsize*ntest),sum(z)
+
+        timep = ZERO
+        do i=1,ntest
+            call cpu_time(c_start)
+            packge = gamma_BK(x)
+            call cpu_time(c_end)
+            z(i) = sum(packge)
+            timep = timep+c_end-c_start
+        end do
+        print "('[bessel_gamma] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
+
+        success = timep<time
+
+    end function test_gamma_cputime
 
     ! Test bessel j0 cpu time
     logical function test_bessel_i1_cputime() result(success)

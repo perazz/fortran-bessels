@@ -464,7 +464,6 @@ module bessels_constants
         module procedure hankel_debye_fit64
     end interface hankel_debye_fit
 
-
     contains
 
     ! Cutoffs for besseljy_debye expansions

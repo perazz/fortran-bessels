@@ -72,12 +72,10 @@ module bessels_gamma
             p = evalpoly(size(ppoly), ax, ppoly)
             q = evalpoly(size(qpoly), ax, qpoly)
 
-            res = z*p/q
-
             if (x<ZERO) then
-                gamma_BK = PI/(s*res)
+                gamma_BK = PI*q/(s*z*p)
             else
-                gamma_BK = res
+                gamma_BK = z*p/q
             end if
 
        elseif (ax<huge(ax)) then

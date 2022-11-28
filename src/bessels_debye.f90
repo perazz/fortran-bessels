@@ -8,13 +8,18 @@
 !
 !                                       Debye asymptotic expansions
 !
-!   This file contains the debye asymptotic asymptotic expansions for large orders.
-!   These routines can be used to calculate `besselj`, `bessely`, `besselk`, `besseli` and the Hankel
-!   functions. These are uniform expansions for `besselk` and `besseli` for large orders.
-!   The forms used for `besselj` and `bessely` as well as the Hankel functions follow the notation by
-!   Matviyenko [1] but also see similar forms provided by NIST 10.19. All of these routines use a core
-!   routine for calculating the U-polynomials (NIST 10.41.E9) where the coefficients are dependent on each
-!   function. The forms for the modified Bessel functions `besselk` and `besseli` follow NIST 10.41 [3].
+!  MIT License
+!
+!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
+!
+!  This file contains the debye asymptotic asymptotic expansions for large orders.
+!  These routines can be used to calculate `besselj`, `bessely`, `besselk`, `besseli` and the Hankel
+!  functions. These are uniform expansions for `besselk` and `besseli` for large orders.
+!  The forms used for `besselj` and `bessely` as well as the Hankel functions follow the notation by
+!  Matviyenko [1] but also see similar forms provided by NIST 10.19. All of these routines use a core
+!  routine for calculating the U-polynomials (NIST 10.41.E9) where the coefficients are dependent on each
+!  function. The forms for the modified Bessel functions `besselk` and `besseli` follow NIST 10.41 [3].
 !  [1] Matviyenko, Gregory. "On the evaluation of Bessel functions." Appl Comp Harm An 1.1 (1993): 116-135.
 !  [2] http://dlmf.nist.gov/10.41.E9
 !  [3] https://dlmf.nist.gov/10.41

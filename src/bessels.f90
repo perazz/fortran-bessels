@@ -1,3 +1,19 @@
+!  ************************************************************************************************************
+!
+!                                    ____  ________________ ________   _____
+!                                   / __ )/ ____/ ___/ ___// ____/ /  / ___/
+!                                  / __  / __/  \__ \\__ \/ __/ / /   \__ \
+!                                 / /_/ / /___ ___/ /__/ / /___/ /______/ /
+!                                /_____/_____//____/____/_____/_____/____/
+!
+!            A Modern Fortran port of the Bessels.jl library for fast Bessel function calculations
+!
+!  MIT License
+!
+!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
+!
+!  ************************************************************************************************************
 module bessels
     use bessels_constants
     use bessels_debye

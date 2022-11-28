@@ -1,3 +1,19 @@
+!  ************************************************************************************************************
+!
+!                                    ____  ________________ ________   _____
+!                                   / __ )/ ____/ ___/ ___// ____/ /  / ___/
+!                                  / __  / __/  \__ \\__ \/ __/ / /   \__ \
+!                                 / /_/ / /___ ___/ /__/ / /___/ /______/ /
+!                                /_____/_____//____/____/_____/_____/____/
+!
+!                                         Constants and parameters
+!
+!  MIT License
+!
+!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
+!
+!  ************************************************************************************************************
 module bessels_constants
     use iso_fortran_env
     use ieee_arithmetic, only: ieee_quiet_nan,ieee_value
@@ -580,7 +596,6 @@ module bessels_constants
 
          cbrt = y*(u+3*u*w/(w+2*u*u*u))
     end function cbrt
-
 
     ! Evaluate polynomial sum_{i=1}^{n} (x^(k-1)*p(k)) using Horner's method
     pure function evalpoly(n,x,p) result(y)

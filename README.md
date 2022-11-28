@@ -12,6 +12,7 @@ Currently available functions are in the `bessel_constants` module:
 - `besselk1(x)`
 - `besseli0(x)`
 - `besseli1(x)`
+- `gamma_BK(x)`
 
 Not yet implemented: 
 - `besselj(nu, x)`
@@ -29,7 +30,6 @@ Not yet implemented:
 - `airyaiprime(x)`
 - `airybi(x)`
 - `airybiprime(x)`
-- `Bessels.gamma(x)`
 
 A simple build can be achieved by running:
 
@@ -58,6 +58,8 @@ For all others, the [netlib specfun](https://netlib.org/specfun/) package is emp
 [bessel_i0] PACKAGE   time used:   10.3035 ns/eval, sum(z)=0.95961921716826120E+263
 [bessel_i1] NETLIB    time used:  479.3809 ns/eval, sum(z)=0.11073899685120145E+48
 [bessel_i1] PACKAGE   time used:   10.4763 ns/eval, sum(z)=0.11017821571878319E+48
+[gamma]     INTRINSIC time used:   37.9529 ns/eval, sum(z)=0.14440233357737784E+68
+[gamma]     PACKAGE   time used:   26.1333 ns/eval, sum(z)=0.14440233357737787E+68
 
 ```
 

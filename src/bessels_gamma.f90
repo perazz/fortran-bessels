@@ -19,7 +19,14 @@ module bessels_gamma
     use ieee_arithmetic, only: ieee_quiet_nan,ieee_value
     use bessels_constants
     implicit none
-    public
+    private
+
+    public :: gamma_BK
+
+    interface gamma_BK
+        module procedure gamma_BK
+        module procedure gamma_integer
+    end interface
 
     contains
 
@@ -100,53 +107,35 @@ module bessels_gamma
        end if
 
    end function gamma_BK
-!
-!function gamma(_x::Float32)
-!    x = Float64(_x)
-!    if _x < 0
-!        s = sinpi(x)
-!        s == 0 && throw(DomainError(_x, "NaN result for non-NaN input."))
-!        x = 1 - x
-!    end
-!    if x < 5
-!        z = 1.0
-!        while x > 1
-!            x -= 1
-!            z *= x
-!        end
-!        num = evalpoly(x, (1.0, 0.41702538904450015, 0.24081703455575904, 0.04071509011391178, 0.015839573267537377))
-!        den = x*evalpoly(x, (1.0, 0.9942411061082665, -0.17434932941689474, -0.13577921102050783, 0.03028452206514555))
-!        res = z * num / den
-!    else
-!        x -= 1
-!        w = evalpoly(inv(x), (2.506628299028453, 0.20888413086840676, 0.008736513049552962, -0.007022997182153692, 0.0006787969600290756))
-!        res = @fastmath sqrt(x) * exp(log(x*1/ℯ) * x) * w
-!    end
-!    return Float32(_x < 0 ? π / (s * res) : res)
-!end
-!
-!function gamma(_x::Float16)
-!    x = Float32(_x)
-!    if _x < 0
-!        s = sinpi(x)
-!        s == 0 && throw(DomainError(_x, "NaN result for non-NaN input."))
-!        x = 1 - x
-!    end
-!    x > 14 && return Float16(ifelse(_x > 0, Inf32, 0f0))
-!    z = 1f0
-!    while x > 1
-!        x -= 1
-!        z *= x
-!    end
-!    num = evalpoly(x, (1.0f0, 0.4170254f0, 0.24081704f0, 0.04071509f0, 0.015839573f0))
-!    den = x*evalpoly(x, (1.0f0, 0.9942411f0, -0.17434932f0, -0.13577922f0, 0.030284522f0))
-!    return Float16(_x < 0 ? Float32(π)*den / (s*z*num) : z * num / den)
-!end
-!
-!function gamma(n::Integer)
-!    n < 0 && throw(DomainError(n, "`n` must not be negative."))
-!    n == 0 && return Inf*one(n)
-!    n > 20 && return gamma(float(n))
-!    @inbounds return Float64(factorial(n-1))
-!end
+
+   ! real64 version adapted from Cephes Mathematical Library (MIT license
+   ! https://en.smath.com/view/CephesMathLibrary/license) by Stephen L. Moshier
+   elemental real(BK) function gamma_integer(x) result(gam)
+      integer, intent(in) :: x
+
+      integer :: i
+      integer, parameter  :: SMALL = 16
+      real(BK), parameter :: rsmall   (SMALL) = [(real(i,BK),i=1,SMALL)]
+      real(BK), parameter :: factorial(SMALL) = [(product(rsmall(1:i)),i=1,SMALL)]
+
+      if (x<0) then
+
+         gam = ieee_value(gam,ieee_quiet_nan)
+
+      elseif (x==0) then
+
+         gam = huge(gam)
+
+      elseif (x<SMALL) then
+
+         gam = factorial(x+1)
+
+      else
+
+         gam = gamma_BK(real(x,BK))
+
+      end if
+
+   end function gamma_integer
+
 end module bessels_gamma

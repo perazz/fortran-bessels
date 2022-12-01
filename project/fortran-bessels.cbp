@@ -25,8 +25,10 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-O2" />
+					<Add option="-O3" />
+					<Add option="-march=native" />
 					<Add option="-Jobj/Release" />
+					<Add option="-ffree-line-length-none" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />

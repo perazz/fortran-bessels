@@ -464,6 +464,13 @@ module bessels_constants
         module procedure hankel_debye_fit64
     end interface hankel_debye_fit
 
+    interface besselj_series_cutoff
+        module procedure besselj_series_cutoff32
+        module procedure besselj_series_cutoff64
+        module procedure besselj_series_cutoff128
+    end interface besselj_series_cutoff
+
+
     contains
 
     ! Cutoffs for besseljy_debye expansions
@@ -532,6 +539,83 @@ module bessels_constants
        real(real32), intent(in) :: x
        hankel_debye_fit32 = -3.5 + x + 7.435*real(cbrt(-real(x,real64)))
     end function hankel_debye_fit32
+
+    elemental logical function besselj_series_cutoff32(x,nu)
+       real(real32), intent(in) :: x,nu
+       besselj_series_cutoff32 = (x < 20.0_real32) .or. (nu > 14.4_real32 + x*(-0.455_real32 + 0.027_real32*x))
+    end function besselj_series_cutoff32
+
+    elemental logical function besselj_series_cutoff64(x,nu)
+       real(real64), intent(in) :: x,nu
+       besselj_series_cutoff64 = (x < 7.0_real32) .or. (nu > TWO + x*(0.109_real64 + 0.062_real64*x))
+    end function besselj_series_cutoff64
+
+    ! cutoff for Float128 for ~1e-35 relative error
+    elemental logical function besselj_series_cutoff128(x,nu)
+       real(real128), intent(in) :: x,nu
+       besselj_series_cutoff128 = (x < FOUR) .or. nu > (x*(0.08_real128 + 0.12_real128*x))
+    end function besselj_series_cutoff128
+
+    ! Power series for J_{nu}(x)
+    ! only valid in non-oscillatory regime (v>1/2, 0<t<sqrt(v^2 - 0.25))
+    ! power series has premature underflow for large orders though use besseljy_debye for large orders
+    elemental real(BK) function besselj_power_series(nu, x)
+       real(BK), intent(in) :: nu, x
+
+       real(real64) :: nu64,x64,out64,a,t2,xo2,rnit
+       integer, parameter :: maxit = 3000
+       integer :: nit
+       real(real64), parameter :: ZERO64 = 0.0_real64
+       real(real64), parameter ::  ONE64 = 1.0_real64
+       real(real64), parameter :: HALF64 = 0.5_real64
+       real(real64), parameter ::  EPS64 = epsilon(0.0_real64)
+
+       ! Always computed in real64 precision
+       nu64 = real(nu,real64)
+        x64 = real(x ,real64)
+
+        out64 = ZERO64
+
+        xo2   = HALF64*x64
+
+        a  = xo2**nu64 / gamma(nu64 + ONE64)
+        t2 = xo2**2
+        nit = 0
+        do while (nit<maxit .and. .not.(abs(a)<EPS64*abs(out64)))
+            nit   = nit+1
+            rnit  = nit
+            out64 = out64+a
+            a = -a*t2/((nu64+rnit)*rnit)
+        end do
+
+        besselj_power_series = real(out64,BK)
+
+    end function besselj_power_series
+
+    ! backward recurrence relation for besselj and bessely
+    ! outputs both (bessel(x, nu_end), bessel(x, nu_end-1)
+    ! x = 0.1; j10 = besselj(10, x); j11 = besselj(11, x);
+    ! besselj_down_recurrence(x, j10, j11, 10, 1) will give besselj(1, x)
+    elemental subroutine besselj_down_recurrence(x, jnu, jnup1, nu_start, nu_end, a, b)
+        real(BK), intent(in) :: x,jnu,jnup1,nu_start,nu_end
+        real(BK), intent(out) :: a,b
+
+        real(BK) :: x2,jnu2(2),nu
+
+        x2 = two/x
+
+        jnu2 = [jnup1,jnu]
+        nu   = nu_start
+
+        do while (nu>nu_end-HALF)
+            jnu2 = [jnu2(2),nu_start*x2*jnu2(2)-jnu2(1)]
+            nu = nu-ONE
+        end do
+
+        a = jnu2(1)
+        b = jnu2(2)
+
+    end subroutine besselj_down_recurrence
 
     ! cubic root function in double precision
     elemental real(BK) function cbrt(x)

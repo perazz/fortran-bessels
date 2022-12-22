@@ -210,6 +210,34 @@ module bessels
         endif
     end function besseljn
 
+    ! Recurrence J_{nu}(x)
+
+    ! At this point we must fill the region when x Å v with recurrence
+    ! Backward recurrence is always stable and forward recurrence is stable when x > nu
+    ! However, we only use backward recurrence by shifting the order up and using `besseljy_debye` to generate start values
+    ! Both `besseljy_debye` and `hankel_debye` get more accurate for large orders,
+    ! however `besseljy_debye` is slightly more efficient (no complex variables) and we need no branches if only consider one direction.
+    ! On the other hand, shifting the order down avoids any concern about underflow for large orders
+    ! Shifting the order too high while keeping x fixed could result in numerical underflow
+    ! Therefore we need to shift up only until the `besseljy_debye` is accurate and need to test that no underflow occurs
+    ! Shifting the order up decreases the value substantially for high orders and results
+    ! in a stable forward recurrence as the values rapidly increase
+    elemental real(BK) function besselj_recurrence(nu, x)
+        real(BK), intent(in) :: nu, x
+
+        real(BK) :: nu_shift,v,jnu,jnup1,besselj,bessely,dummy
+
+        ! shift order up to where expansions are valid see U_polynomials.jl
+        nu_shift = ceiling(besseljy_debye_fit(x)) - floor(nu)
+        v = nu + nu_shift
+        ! compute jnu and jnup1 then use downard recurrence starting from order v down to nu see src/recurrence.jl
+        call besseljy_debye(v    , x, besselj,bessely); jnu   = besselj
+        call besseljy_debye(v+ONE, x, besselj,bessely); jnup1 = besselj
+
+        call besselj_down_recurrence(x,jnu,jnup1,v,nu,besselj_recurrence,dummy)
+
+    end function besselj_recurrence
+
 
     ! Bessel function of the first kind of order nu, ``J_{nu}(x)``.
     ! nu and x must be real and nu and x must be positive.
@@ -243,17 +271,17 @@ module bessels
 
             ! x > ~nu branch see src/U_polynomials.jl on computing Hankel function
             besselj_positive_args = real(hankel_debye(nu, x), BK)
-!
-!        elseif (besselj_series_cutoff(nu, x)) then
-!
-!            ! use power series for small x and for when nu > x
-!            besselj_positive_args = besselj_power_series(nu, x)
-!
-!        else
-!
-!            ! shift nu up and use downward recurrence
-!            besselj_positive_args = besselj_recurrence(nu, x)
-!
+
+        elseif (besselj_series_cutoff(nu, x)) then
+
+            ! use power series for small x and for when nu > x
+            besselj_positive_args = besselj_power_series(nu, x)
+
+        else
+
+            ! shift nu up and use downward recurrence
+            besselj_positive_args = besselj_recurrence(nu, x)
+
         end if
 
     end function besselj_positive_args

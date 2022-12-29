@@ -16,7 +16,7 @@
 !  ************************************************************************************************************
 module bessels_constants
     use iso_fortran_env
-    use ieee_arithmetic, only: ieee_quiet_nan,ieee_value
+    use ieee_arithmetic, only: ieee_quiet_nan,ieee_value,ieee_negative_inf
     implicit none
     public
 
@@ -617,6 +617,40 @@ module bessels_constants
 
     end subroutine besselj_down_recurrence
 
+    ! forward recurrence relation for besselj and bessely
+    ! outputs both (bessel(x, nu_end), bessel(x, nu_end+1)
+    ! x = 0.1; y0 = bessely0(x); y1 = bessely1(x);
+    ! besselj_up_recurrence(x, y1, y0, 1, 5) will give bessely(5, x)
+    elemental subroutine besselj_up_recurrence(x, jnu, jnum1, nu_start, nu_end, a, b)
+        real(BK), intent(in) :: x,jnu,jnum1,nu_start,nu_end
+        real(BK), intent(out) :: a,b
+
+        real(BK) :: x2,jnu2(2),nu
+
+        x2   = two/x
+        jnu2 = [jnum1,jnu]
+        nu   = nu_start
+
+        ! avoid inexact floating points when nu is a float
+        do while (nu<nu_end+HALF)
+            jnu2 = [jnu2(2),nu_start*x2*jnu2(2)-jnu2(1)]
+            nu = nu-ONE
+        end do
+
+        a = jnu2(1)
+        b = jnu2(2)
+
+        ! need to check if NaN resulted during loop from subtraction of infinities
+        ! this could happen if x is very small and nu is large which eventually results in overflow (-> -Inf)
+        ! we use this routine to generate bessely(nu::Int, x) in the forward direction starting from bessely0, bessely1
+        ! NaN inputs need to be checked before getting to this routine
+        if (isnan(jnu2(1))) then
+            a = ieee_value(a, ieee_negative_inf)
+            b = ieee_value(a, ieee_negative_inf)
+        end if
+
+    end subroutine besselj_up_recurrence
+
     ! cubic root function in double precision
     elemental real(BK) function cbrt(x)
        real(BK),   intent(in) :: x
@@ -716,5 +750,10 @@ module bessels_constants
        real(BK), intent(in) :: A,x,y
        axpy = A*x+y
     end function muladd
+
+    elemental logical function isinteger(x)
+       real(BK), intent(in) :: x
+       isinteger = (x-nint(x))<epsilon(ZERO)
+    end function isinteger
 
 end module bessels_constants

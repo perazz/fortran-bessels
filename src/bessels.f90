@@ -214,25 +214,28 @@ module bessels
 
     ! At this point we must fill the region when x Å v with recurrence
     ! Backward recurrence is always stable and forward recurrence is stable when x > nu
-    ! However, we only use backward recurrence by shifting the order up and using `besseljy_debye` to generate start values
-    ! Both `besseljy_debye` and `hankel_debye` get more accurate for large orders,
-    ! however `besseljy_debye` is slightly more efficient (no complex variables) and we need no branches if only consider one direction.
-    ! On the other hand, shifting the order down avoids any concern about underflow for large orders
+    ! However, we only use backward recurrence by shifting the order up and using `besseljy_debye` to
+    ! generate start values. Both `besseljy_debye` and `hankel_debye` get more accurate for large orders,
+    ! however `besseljy_debye` is slightly more efficient (no complex variables) and we need no branches
+    ! if only consider one direction. On the other hand, shifting the order down avoids any concern about
+    ! underflow for large orders.
     ! Shifting the order too high while keeping x fixed could result in numerical underflow
-    ! Therefore we need to shift up only until the `besseljy_debye` is accurate and need to test that no underflow occurs
-    ! Shifting the order up decreases the value substantially for high orders and results
+    ! Therefore we need to shift up only until the `besseljy_debye` is accurate and need to test that no
+    ! underflow occurs. Shifting the order up decreases the value substantially for high orders and results
     ! in a stable forward recurrence as the values rapidly increase
     elemental real(BK) function besselj_recurrence(nu, x)
         real(BK), intent(in) :: nu, x
 
-        real(BK) :: nu_shift,v,jnu,jnup1,besselj,bessely,dummy
+        real(BK) :: nu_shift,v,jnu,jnup1,dummy
 
         ! shift order up to where expansions are valid see U_polynomials.jl
         nu_shift = ceiling(besseljy_debye_fit(x)) - floor(nu)
+
         v = nu + nu_shift
-        ! compute jnu and jnup1 then use downard recurrence starting from order v down to nu see src/recurrence.jl
-        call besseljy_debye(v    , x, besselj,bessely); jnu   = besselj
-        call besseljy_debye(v+ONE, x, besselj,bessely); jnup1 = besselj
+
+        ! compute jnu and jnup1 then use downard recurrence starting from order v down to nu
+        call besseljy_debye(v    , x, jnu  ,dummy);
+        call besseljy_debye(v+ONE, x, jnup1,dummy);
 
         call besselj_down_recurrence(x,jnu,jnup1,v,nu,besselj_recurrence,dummy)
 
@@ -286,6 +289,52 @@ module bessels
 
     end function besselj_positive_args
 
+
+    ! Bessel function of the second kind of order nu, ``Y_{nu}(x)``.
+    ! nu and x must be real and nu and x must be positive.
+    ! No checks on arguments are performed and should only be called if certain nu, x >= 0.
+    elemental real(BK) function bessely_positive_args(nu, x)
+       real(BK), intent(in) :: nu, x
+
+       real(BK) :: dummy
+
+       if (x==ZERO) then
+
+          bessely_positive_args = ieee_value(x,ieee_negative_inf)
+
+       elseif (isinteger(nu) .and. nu<250.0_BK) then
+
+          ! use forward recurrence if nu is an integer up until it becomes inefficient
+          call besselj_up_recurrence(x, bessely1(x), bessely0(x), ONE, nu, bessely_positive_args, dummy)
+
+       elseif (besseljy_debye_cutoff(nu, x)) then
+
+          ! x < ~nu branch see src/U_polynomials.jl
+          call besseljy_debye(nu, x, dummy, bessely_positive_args)
+
+       elseif (besseljy_large_argument_cutoff(nu, x)) then
+
+          ! large argument branch see src/asymptotics.jl
+          call besseljy_large_argument(nu, x, dummy, bessely_positive_args)
+
+       elseif (hankel_debye_cutoff(nu, x)) then
+
+          ! x > ~nu branch see src/U_polynomials.jl on computing Hankel function
+          bessely_positive_args = aimag(hankel_debye(nu, x))
+
+!       elseif (bessely_series_cutoff(nu, x)) then
+
+          ! use power series for small x and for when nu > x
+          !bessely_positive_args = bessely_power_series(nu, x)[1]
+!
+!       else
+!
+!          ! shift nu down and use upward recurrence starting from either chebyshev approx or hankel expansion
+!          bessely_positive_args = bessely_fallback(nu,x)
+
+       endif
+
+    end function bessely_positive_args
 
 
     ! Bessel functions of the second kind of order zero

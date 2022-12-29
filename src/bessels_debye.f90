@@ -73,8 +73,7 @@ module bessels_debye
         p    = nu/vs
         p2   = nu**2/vmx
 
-        ! _, Uk_Yn = Uk_poly_Hankel(p*im, v, -p2, T(x))
-        ab = Uk_poly_Hankel(p, nu, -p2, x) ! why p*im ?
+        ab    = Uk_poly_Hankel(p, nu, -p2, x) ! why p*im ?
         Uk_Yn = IM*ab(2)
 
         hankel_debye = coef_Yn * Uk_Yn
@@ -459,8 +458,8 @@ module bessels_debye
        s3 = CMS * sa
        s4 = CPS * ca
 
-        besselj = SQ2O2 * (s1 + s2) * b
-        bessely = SQ2O2 * (s3 - s4) * b
+       besselj = SQ2O2 * (s1 + s2) * b
+       bessely = SQ2O2 * (s3 - s4) * b
     end subroutine besseljy_large_argument
 
     ! Float64

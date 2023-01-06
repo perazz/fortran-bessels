@@ -592,6 +592,76 @@ module bessels_constants
 
     end function besselj_power_series
 
+    ! Power series for Y_{nu}(x)
+
+    ! Use power series form of J_v(x) to calculate Y_v(x) with
+    ! Y_v(x) = (J_v(x)cos(v*¹) - J_{-v}(x)) / sin(v*pi),    v ~= 0, 1, 2, ...
+    ! combined to calculate both J_v and J_{-v} in the same loop (J_{-v} always converges slower)
+
+    ! this works well for small arguments x < 7.0 for rel. error ~1e-14
+    ! this also works well for nu > 1.35x - 4.5
+    ! for nu > 25 more cancellation occurs near integer values
+    ! There could be premature underflow when (x/2)^v == 0.
+
+    ! Computes ``Y_{nu}(x)`` using the power series when nu is not an integer.
+    ! In general, this is most accurate for small arguments and when nu > x.
+    ! Outpus both (Y_{nu}(x), J_{nu}(x)).
+    pure function bessely_power_series(x, nu) result(YJ)
+       real(BK), intent(in) :: x, nu
+       real(BK) :: YJ(2)
+
+       real(real64) :: nu64,x64,out64,out264,a,b,t2,xo2,rnit,spi,cpi
+       integer, parameter :: maxit = 3000
+       integer :: nit
+       real(real64), parameter :: ZERO64 = 0.0_real64
+       real(real64), parameter ::  ONE64 = 1.0_real64
+       real(real64), parameter ::   PI64 = acos(-1.0_real64)
+       real(real64), parameter :: HALF64 = 0.5_real64
+       real(real64), parameter ::  EPS64 = epsilon(0.0_real64)
+
+       ! Always computed in real64 precision
+       nu64 = real(nu,real64)
+        x64 = real(x ,real64)
+
+       out64  = ZERO64
+       out264 = ZERO64
+
+        xo2   = HALF64*x64
+        a     = xo2**nu64
+
+        ! check for underflow and return limit for small arguments
+        if (abs(a)<tiny(0.0_real64)) then
+
+           YJ = [ieee_value(ZERO,ieee_negative_inf),real(a,BK)]
+
+        else
+
+           b   = ONE64/a
+           a   = a/gamma( nu64 + ONE64)
+           b   = b/gamma(-nu64 + ONE64)
+           t2  = xo2**2
+           nit = 0
+
+           do while (nit<maxit .and. .not.(abs(b)<EPS64*abs(out264)))
+               nit   = nit+1
+               rnit  = nit
+
+               out64  = out64 +a
+               out264 = out264+b
+
+               a = -a*t2/(( nu64+rnit)*rnit)
+               b = -b*t2/((-nu64+rnit)*rnit)
+           end do
+
+           spi = sin(nu64*PI64)
+           cpi = cos(nu64*PI64)
+
+           YJ = real([(out64*cpi-out264)/spi,out64],BK)
+
+        end if
+
+    end function bessely_power_series
+
     ! backward recurrence relation for besselj and bessely
     ! outputs both (bessel(x, nu_end), bessel(x, nu_end-1)
     ! x = 0.1; j10 = besselj(10, x); j11 = besselj(11, x);

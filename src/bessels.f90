@@ -296,7 +296,7 @@ module bessels
     elemental real(BK) function bessely_positive_args(nu, x)
        real(BK), intent(in) :: nu, x
 
-       real(BK) :: dummy
+       real(BK) :: dummy,YJ(2)
 
        if (x==ZERO) then
 
@@ -322,11 +322,12 @@ module bessels
           ! x > ~nu branch see src/U_polynomials.jl on computing Hankel function
           bessely_positive_args = aimag(hankel_debye(nu, x))
 
-!       elseif (bessely_series_cutoff(nu, x)) then
+       elseif (bessely_series_cutoff(nu, x)) then
 
           ! use power series for small x and for when nu > x
-          !bessely_positive_args = bessely_power_series(nu, x)[1]
-!
+          YJ = bessely_power_series(nu, x)
+          bessely_positive_args = YJ(1)
+
 !       else
 !
 !          ! shift nu down and use upward recurrence starting from either chebyshev approx or hankel expansion

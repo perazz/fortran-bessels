@@ -470,6 +470,11 @@ module bessels_constants
         module procedure besselj_series_cutoff128
     end interface besselj_series_cutoff
 
+    interface bessely_series_cutoff
+        module procedure bessely_series_cutoff32
+        module procedure bessely_series_cutoff64
+    end interface bessely_series_cutoff
+
 
     contains
 
@@ -480,7 +485,7 @@ module bessels_constants
     ! Float32
     elemental real(real32) function besseljy_debye_fit32(x)
        real(real32), intent(in) :: x
-       besseljy_debye_fit32 =  2.50_real32 + 1.00035_real32*x + 7.114_real32*cbrt(real(x,real64))
+       besseljy_debye_fit32 =  2.50_real32 + 1.00035_real32*x + 7.114_real32*real(cbrt(real(x,real64)),real32)
     end function besseljy_debye_fit32
 
     elemental logical function besseljy_debye_cutoff32(nu, x)
@@ -555,6 +560,16 @@ module bessels_constants
        real(real128), intent(in) :: x,nu
        besselj_series_cutoff128 = (x < FOUR) .or. nu > (x*(0.08_real128 + 0.12_real128*x))
     end function besselj_series_cutoff128
+
+    elemental logical function bessely_series_cutoff32(nu,x)
+       real(real32), intent(in) :: x,nu
+       bessely_series_cutoff32 = (x < 21.0_real32) .or. nu > 1.38_real32*x - 12.5_real32
+    end function bessely_series_cutoff32
+
+    elemental logical function bessely_series_cutoff64(nu,x)
+       real(real64), intent(in) :: x,nu
+       bessely_series_cutoff64 = (x < 7.0_real64) .or. nu > 1.35_real64*x - 4.5_real64
+    end function bessely_series_cutoff64
 
     ! Power series for J_{nu}(x)
     ! only valid in non-oscillatory regime (v>1/2, 0<t<sqrt(v^2 - 0.25))

@@ -57,8 +57,8 @@ module bessels_debye
     elemental complex(BK) function hankel_debye(nu, x)
         real(BK), intent(in) :: nu, x
 
-        real(BK) :: vmx,vs,sqvs,n,p,p2,ab(2),Uk_Yn
-        complex(BK) :: coef_Yn
+        real(BK) :: vmx,vs,sqvs,n,p,p2,ab(2)
+        complex(BK) :: coef_Yn,Uk_Yn
         intrinsic :: sqrt
 
 

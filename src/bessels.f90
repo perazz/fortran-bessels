@@ -289,6 +289,20 @@ module bessels
 
     end function besselj_positive_args
 
+    ! Fallback for Y_{nu}(x)
+!    elemental real(BK) function bessely_fallback(nu, x)
+!        ! for x in (6, 19) we use Chebyshev approximation and forward recurrence
+!        if (besseljy_chebyshev_cutoff(nu, x)) then
+!            return bessely_chebyshev(nu, x)[1]
+!        else
+!            ! at this point x > 19.0 (for Float64) and fairly close to nu
+!            ! shift nu down and use the debye expansion for Hankel function (valid x > nu) then
+!            ! use forward recurrence
+!            nu_shift = ceil(Int, nu) - floor(Int, hankel_debye_fit(x)) + 4
+!            v2 = maximum((nu - nu_shift, modf(nu)[1] + 1))
+!            return besselj_up_recurrence(x, imag(hankel_debye(v2, x)), imag(hankel_debye(v2 - 1, x)), v2, nu)[1]
+!        endif
+!    end function bessely_fallback
 
     ! Bessel function of the second kind of order nu, ``Y_{nu}(x)``.
     ! nu and x must be real and nu and x must be positive.

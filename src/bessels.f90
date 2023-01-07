@@ -201,11 +201,12 @@ module bessels
             if (x >= ZERO) then
                 besseljn = Jnu *sgn
             else
-                besseljn = ieee_value(besseljn,ieee_quiet_nan)
-!                Ynu = bessely_positive_args(ranu, ax)
-!                spi = sin(PI*anu)
-!                cpi = cos(PI*anu)
-!                besseljn = (cpi*Jnu - spi*Ynu) * sgn
+
+                Ynu = bessely_positive_args(ranu, ax)
+                spi = sin(PI*anu)
+                cpi = cos(PI*anu)
+                besseljn = (cpi*Jnu - spi*Ynu) * sgn
+
             endif
         endif
     end function besseljn
@@ -290,19 +291,97 @@ module bessels
     end function besselj_positive_args
 
     ! Fallback for Y_{nu}(x)
-!    elemental real(BK) function bessely_fallback(nu, x)
-!        ! for x in (6, 19) we use Chebyshev approximation and forward recurrence
-!        if (besseljy_chebyshev_cutoff(nu, x)) then
-!            return bessely_chebyshev(nu, x)[1]
-!        else
-!            ! at this point x > 19.0 (for Float64) and fairly close to nu
-!            ! shift nu down and use the debye expansion for Hankel function (valid x > nu) then
-!            ! use forward recurrence
-!            nu_shift = ceil(Int, nu) - floor(Int, hankel_debye_fit(x)) + 4
-!            v2 = maximum((nu - nu_shift, modf(nu)[1] + 1))
-!            return besselj_up_recurrence(x, imag(hankel_debye(v2, x)), imag(hankel_debye(v2 - 1, x)), v2, nu)[1]
-!        endif
-!    end function bessely_fallback
+    elemental real(BK) function bessely_fallback(nu, x)
+        real(BK), intent(in) :: nu, x
+
+        complex(BK) :: cheb
+        real(BK) :: nu_shift,v2
+
+        ! for x in (6, 19) we use Chebyshev approximation and forward recurrence
+        if (besseljy_chebyshev_cutoff(x)) then
+
+            cheb = bessely_chebyshev(nu, x)
+
+        else
+
+            ! at this point x > 19.0 (for Float64) and fairly close to nu
+            ! shift nu down and use the debye expansion for Hankel function (valid x > nu) then
+            ! use forward recurrence
+            nu_shift = ceiling(nu) - floor(hankel_debye_fit(x)) + FOUR
+            v2 = max(nu - nu_shift, ONE + nu-int(nu))
+            call besselj_up_recurrence(x, aimag(hankel_debye(v2, x)), aimag(hankel_debye(v2 - 1, x)), v2, nu, cheb%re, cheb%im)
+
+        endif
+
+        bessely_fallback = cheb%re
+
+    end function bessely_fallback
+
+     ! Chebyshev approximation for Y_{nu}(x)
+     ! Computes ``Y_{nu}(x)`` for medium arguments x in (6, 19) for any positive order using a
+     ! Chebyshev approximation. Forward recurrence is used to fill orders starting at low orders nu in (0, 2).
+     elemental complex(BK) function bessely_chebyshev(nu, x) result(cheb)
+        real(BK), intent(in) :: nu, x
+
+        real(BK) :: nu_floor
+        complex(BK) :: Y
+
+        nu_floor = nu - int(nu)
+
+        Y = bessely_chebyshev_low_orders(nu_floor, x)
+
+        call besselj_up_recurrence(x, Y%im, Y%re, nu_floor + ONE, nu, cheb%re, cheb%im)
+
+     end function bessely_chebyshev
+
+     ! only implemented for Float64 so far
+     elemental logical function besseljy_chebyshev_cutoff(x)
+        real(BK), intent(in) :: x
+        besseljy_chebyshev_cutoff = x <= 19.0_BK .and. x >= 6.0_BK
+     end function besseljy_chebyshev_cutoff
+
+     ! compute bessely for x in (6, 19) and nu in (0, 2) using chebyshev approximation with a (16, 28) grid
+     ! optimized to return both (nu, nu + 1) in around the same time, therefore nu must be in (0, 1)
+     ! no checks are performed on arguments
+     elemental complex(BK) function bessely_chebyshev_low_orders(nu, x) result(cheb)
+        real(BK), intent(in) :: nu, x
+
+        real(BK), parameter :: TWOO13 = TWO/13.0_BK
+        real(BK) :: x1,nu1,nu2,a(size(bessely_cheb_weights,2))
+        integer :: i
+        ! need to rescale inputs according to
+        !x0 = (x - lb) * 2 / (ub - lb) - 1
+        x1  = (x - SIX)*TWOO13 - ONE
+        nu1 = nu - ONE
+        nu2 = nu
+        forall(i=1:size(bessely_cheb_weights,2)) a(i) = clenshaw_chebyshev(x1, bessely_cheb_weights(:,i))
+
+        cheb%re = clenshaw_chebyshev(nu1, a)
+        cheb%im = clenshaw_chebyshev(nu2, a)
+
+     end function bessely_chebyshev_low_orders
+
+     ! use the Clenshaw algorithm to recursively evaluate a linear combination of Chebyshev polynomials
+     pure real(BK) function clenshaw_chebyshev(x, c) result(cheb)
+        real(BK), intent(in) :: x, c(:)
+
+        real(BK) :: x2,c0,c1,a,b
+        integer  :: lc,i
+
+        lc = size(c)
+        x2 = 2*x
+
+        c0 = c(lc-1)
+        c1 = c(lc)
+        do i=lc-2,1,-1
+           a = c(i) - c1
+           b = c0 + c1 * x2
+           c0 = a
+           c1 = b
+        end do
+
+        cheb = c0 + c1 * x
+     end function clenshaw_chebyshev
 
     ! Bessel function of the second kind of order nu, ``Y_{nu}(x)``.
     ! nu and x must be real and nu and x must be positive.
@@ -342,10 +421,10 @@ module bessels
           YJ = bessely_power_series(nu, x)
           bessely_positive_args = YJ(1)
 
-!       else
-!
-!          ! shift nu down and use upward recurrence starting from either chebyshev approx or hankel expansion
-!          bessely_positive_args = bessely_fallback(nu,x)
+       else
+
+          ! shift nu down and use upward recurrence starting from either chebyshev approx or hankel expansion
+          bessely_positive_args = bessely_fallback(nu,x)
 
        endif
 

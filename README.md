@@ -6,6 +6,7 @@ Building
 Currently available functions are in the `bessel_constants` module:
 - `besselj0(x)`
 - `besselj1(x)`
+- `besselj(nu, x)`
 - `bessely0(x)`
 - `bessely1(x)`
 - `besselk0(x)`
@@ -15,7 +16,6 @@ Currently available functions are in the `bessel_constants` module:
 - `gamma_BK(x)`
 
 Not yet implemented: 
-- `besselj(nu, x)`
 - `bessely(nu, x)`
 - `besseli(nu, x)`
 - `besselk(nu, x)`

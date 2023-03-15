@@ -1,0 +1,26 @@
+name        = "fortran-bessels"
+author      = "Federico Perini"
+copyright   = "Copyright (c) 2022-2023, Federico Perini" 
+version     = "0.1.0"
+license     = "MIT"
+description = "Fortran Bessels library" 
+homepage    = "https://github.com/perazz/fortran-bessels"
+keywords    = ["math","bessel","bessel functions","special functions"]
+
+[build]
+auto-executables = false
+auto-examples    = false
+auto-tests       = true
+
+[library]
+source-dir  = "src"
+include-dir = "src"
+
+[install]
+library = true
+
+[[test]]
+name="bessels_tests"
+source-dir="test"
+main="bessels_test.f90"
+

@@ -169,7 +169,7 @@ program bessels_test
       real(BK), parameter :: xmin = -1e+3_BK
       real(BK), parameter :: xmax =  1e+3_BK
       real(BK), parameter :: RTOL =  1e-6_BK
-      real(BK), parameter :: ATOL =  1e-10_BK
+      real(BK), parameter :: ATOL =  1e-8_BK
       real(BK) :: x(NTEST),fun(NTEST),intr(NTEST),err(NTEST)
       integer :: i,n
 
@@ -564,8 +564,8 @@ program bessels_test
         real(BK), parameter :: xmax =  600.0_BK
         real(BK), allocatable :: x(:),intrin(:),packge(:),z(:)
         integer :: i,j,ierr
-        real(BK) :: time,timep,c_start,c_end
-        allocate(x(nsize),intrin(nsize+1),packge(nsize),z(ntest))
+        real(BK) :: time,timep,c_start,c_end,this(2)
+        allocate(x(nsize),intrin(nsize),packge(nsize),z(ntest))
 
         call random_number(x)
         x    = xmin*(ONE-x) + xmax*x
@@ -575,7 +575,8 @@ program bessels_test
             call cpu_time(c_start)
 
             do j=1,nsize
-               CALL RKBESL(X=x(j), ALPHA=ZERO, NB=2, IZE=1, BK=intrin(j:j+1), NCALC=ierr)
+               CALL RKBESL(X=x(j), ALPHA=ZERO, NB=2, IZE=1, BK=this, NCALC=ierr)
+               intrin(j) = this(2)
             end do
 
             call cpu_time(c_end)

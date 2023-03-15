@@ -25,7 +25,7 @@ module bessels
     public :: BK,BSIZE
 
     public :: besseli0,besseli1
-    public :: besselj0,besselj1
+    public :: besselj0,besselj1,besseljn
     public :: bessely0,bessely1
     public :: besselk0,besselk1
 
@@ -196,10 +196,13 @@ module bessels
 
         Jnu = besselj_positive_args(ranu, ax)
         if (nu >= ZERO) then
+
             besseljn = merge(Jnu,Jnu*sgn,x>=ZERO)
         else
             if (x >= ZERO) then
+
                 besseljn = Jnu *sgn
+
             else
 
                 Ynu = bessely_positive_args(ranu, ax)
@@ -227,7 +230,7 @@ module bessels
     elemental real(BK) function besselj_recurrence(nu, x)
         real(BK), intent(in) :: nu, x
 
-        real(BK) :: nu_shift,v,jnu,jnup1,dummy
+        real(BK) :: nu_shift,v,jnu,jnup1,dummy,jnu2(2)
 
         ! shift order up to where expansions are valid see U_polynomials.jl
         nu_shift = ceiling(besseljy_debye_fit(x)) - floor(nu)
@@ -238,10 +241,10 @@ module bessels
         call besseljy_debye(v    , x, jnu  ,dummy);
         call besseljy_debye(v+ONE, x, jnup1,dummy);
 
-        call besselj_down_recurrence(x,jnu,jnup1,v,nu,besselj_recurrence,dummy)
+        jnu2 = besselj_down_recurrence(x,jnu,jnup1,v,nu)
+        besselj_recurrence = jnu2(1)
 
     end function besselj_recurrence
-
 
     ! Bessel function of the first kind of order nu, ``J_{nu}(x)``.
     ! nu and x must be real and nu and x must be positive.

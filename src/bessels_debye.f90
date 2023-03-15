@@ -87,19 +87,19 @@ module bessels_debye
        real(BK), intent(out) :: besselj,bessely
 
        real(BK) :: vmx,vs,sqvs,coef_Jn,coef_Yn,expn,p,p2,Uk_Jn,Uk_Yn,n
-       intrinsic :: sqrt,log
+       intrinsic :: sqrt,log,exp
 
        ! x<v so these are all real numbers
        vmx  = (v + x) * (v - x)
        vs   = sqrt(vmx)
        sqvs = ONE/sqrt(vs)
 
-       n  = muladd(v, -log(x / (v + vs)), -vs)
+       n    = muladd(v, -log(x / (v + vs)), -vs)
 
        expn = exp(n)
 
-       coef_Jn = SQ1O2PI * sqvs * expn
-       coef_Yn = -SQ2OPI * sqvs / expn
+       coef_Jn = SQ1O2PI * sqvs /expn
+       coef_Yn = -SQ2OPI * sqvs *expn
 
        p   = v / vs
        p2  = v**2 / vmx

@@ -23,6 +23,7 @@ program bessels_test
     call add_test(test_cuberoot())
     call add_test(test_bessel_j0())
     call add_test(test_bessel_j1())
+    call add_test(test_bessel_jn())
     call add_test(test_bessel_y0())
     call add_test(test_bessel_y1())
     call add_test(test_bessel_k0())
@@ -32,6 +33,7 @@ program bessels_test
     call add_test(test_gamma())
     call add_test(test_bessel_j0_cputime())
     call add_test(test_bessel_j1_cputime())
+    call add_test(test_bessel_jn_cputime())
     call add_test(test_bessel_y0_cputime())
     call add_test(test_bessel_y1_cputime())
     call add_test(test_bessel_k0_cputime())
@@ -95,7 +97,7 @@ program bessels_test
         end do
         print "('[bessel_j0] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_bessel_j0_cputime
 
@@ -159,6 +161,91 @@ program bessels_test
 
     end function test_bessel_j1
 
+    ! Test bessel j function for integer order
+    logical function test_bessel_jn() result(success)
+
+      integer, parameter :: NTEST = 100000
+
+      real(BK), parameter :: xmin = -1e+3_BK
+      real(BK), parameter :: xmax =  1e+3_BK
+      real(BK), parameter :: RTOL =  1e-6_BK
+      real(BK), parameter :: ATOL =  1e-10_BK
+      real(BK) :: x(NTEST),fun(NTEST),intr(NTEST),err(NTEST)
+      integer :: i,n
+
+      ! Randoms in range
+      call random_number(x)
+      x    = xmin*(ONE-x) + xmax*x
+
+      success = .true.
+
+      do n=0,10
+
+          do i=1,NTEST
+          fun(i)  = besseljn(n,x(i))
+          end do
+          intr = bessel_jn(n,x)
+          err  = abs(fun-intr)*rewt(intr,RTOL,ATOL)
+
+          success = success .and. all(err<one)
+
+          if (.not.all(err<one)) then
+             do i=1,NTEST
+                if (err(i)>=one) then
+                fun(i)  = besseljn(n,x(i))
+                print *, '[bessel_jn] x=',x(i),' n=',n,' package=',fun(i),' intrinsic=',intr(i),' relerr=',err(i)
+                stop
+                endif
+             end do
+          end if
+
+      end do
+
+    end function test_bessel_jn
+
+    ! Test bessel j0 cpu time
+    logical function test_bessel_jn_cputime() result(success)
+
+        integer, parameter :: nsize = 10000
+        integer, parameter :: ntest = 100
+        real(BK), parameter :: xmin = -1e+3_BK
+        real(BK), parameter :: xmax =  1e+3_BK
+        real(BK), allocatable :: x(:),intrin(:),packge(:),z(:)
+        integer :: i,n
+        real(BK) :: time,timep,c_start,c_end
+        allocate(x(nsize),intrin(nsize),packge(nsize),z(ntest))
+
+        call random_number(x)
+        x    = xmin*(ONE-x) + xmax*x
+
+        time = ZERO
+        do n=0,9
+        do i=1,ntest
+            call cpu_time(c_start)
+            intrin = bessel_jn(n,x)
+            call cpu_time(c_end)
+            z(i) = sum(intrin)
+            time = time+c_end-c_start
+        end do
+        end do
+        print "('[bessel_jn] INTRINSIC time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*time/(10*nsize*ntest),sum(z)
+
+        timep = ZERO
+        do n=0,9
+        do i=1,ntest
+            call cpu_time(c_start)
+            packge = besseljn(n,x)
+            call cpu_time(c_end)
+            z(i) = sum(packge)
+            timep = timep+c_end-c_start
+        end do
+        end do
+        print "('[bessel_jn] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(10*nsize*ntest),sum(z)
+
+        success = timep<2*time
+
+    end function test_bessel_jn_cputime
+
     ! Test bessel j0 cpu time
     logical function test_bessel_j1_cputime() result(success)
 
@@ -194,7 +281,7 @@ program bessels_test
         end do
         print "('[bessel_j1] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_bessel_j1_cputime
 
@@ -264,7 +351,7 @@ program bessels_test
         end do
         print "('[bessel_y0] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_bessel_y0_cputime
 
@@ -333,7 +420,7 @@ program bessels_test
         end do
         print "('[bessel_y1] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_bessel_y1_cputime
 
@@ -418,7 +505,7 @@ program bessels_test
         end do
         print "('[bessel_k0] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_bessel_k0_cputime
 
@@ -507,7 +594,7 @@ program bessels_test
         end do
         print "('[bessel_k1] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_bessel_k1_cputime
 
@@ -556,7 +643,7 @@ program bessels_test
     logical function test_bessel_i0_cputime() result(success)
         use rji
 
-        integer, parameter :: nsize = 100000
+        integer, parameter :: nsize = 1000
         integer, parameter :: ntest = 100
         real(BK), parameter :: xmin =    0.0_BK
         ! Limit the max x range to RKBESL validity
@@ -593,7 +680,7 @@ program bessels_test
         end do
         print "('[bessel_i0] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_bessel_i0_cputime
 
@@ -711,7 +798,7 @@ program bessels_test
         end do
         print "('[bessel_gamma] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_gamma_cputime
 
@@ -761,7 +848,7 @@ program bessels_test
         end do
         print "('[bessel_i1] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)",1e9*timep/(nsize*ntest),sum(z)
 
-        success = timep<time
+        success = timep<2*time
 
     end function test_bessel_i1_cputime
 

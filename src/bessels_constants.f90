@@ -819,26 +819,22 @@ module bessels_constants
     ! outputs both (bessel(x, nu_end), bessel(x, nu_end-1)
     ! x = 0.1; j10 = besselj(10, x); j11 = besselj(11, x);
     ! besselj_down_recurrence(x, j10, j11, 10, 1) will give besselj(1, x)
-    elemental subroutine besselj_down_recurrence(x, jnu, jnup1, nu_start, nu_end, a, b)
+    pure function besselj_down_recurrence(x, jnu, jnup1, nu_start, nu_end) result(jnu2)
         real(BK), intent(in) :: x,jnu,jnup1,nu_start,nu_end
-        real(BK), intent(out) :: a,b
 
-        real(BK) :: x2,jnu2(2),nu
+        real(BK) :: x2,jnu2(2),nus
 
-        x2 = two/x
+        x2   = two/x
 
+        nus  = nu_start
         jnu2 = [jnup1,jnu]
-        nu   = nu_start
 
-        do while (nu>nu_end-HALF)
-            jnu2 = [jnu2(2),nu_start*x2*jnu2(2)-jnu2(1)]
-            nu = nu-ONE
+        do while (nus>nu_end-HALF)
+            jnu2 = [jnu2(2),nus*x2*jnu2(2)-jnu2(1)]
+            nus = nus-ONE
         end do
 
-        a = jnu2(1)
-        b = jnu2(2)
-
-    end subroutine besselj_down_recurrence
+    end function besselj_down_recurrence
 
     ! forward recurrence relation for besselj and bessely
     ! outputs both (bessel(x, nu_end), bessel(x, nu_end+1)

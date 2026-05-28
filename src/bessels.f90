@@ -21,6 +21,7 @@ module bessels
     use bessels_airy,  only: airyai,airyaiprime,airybi,airybiprime, &
                               airyaix,airyaiprimex,airybix,airybiprimex
     use bessels_besselk, only: besselk, besselkx
+    use bessels_besseli, only: besseli, besselix
 
     implicit none
     private
@@ -28,7 +29,7 @@ module bessels
     ! Todo: make one module per real precision
     public :: BK,BSIZE
 
-    public :: besseli0,besseli1
+    public :: besseli0,besseli1,besseli,besselix
     public :: besselj0,besselj1,besseljn
     public :: bessely0,bessely1,bessely
     public :: besselk0,besselk1,besselk,besselkx

@@ -43,6 +43,11 @@ program bessels_test
     call add_test(test_besselk_noninteger())
     call add_test(test_besselkx_overflow_guard())
     call add_test(test_besselk_nu_cputime())
+    call add_test(test_besseli_integer())
+    call add_test(test_besseli_noninteger())
+    call add_test(test_besseli_negative_nu_reflection())
+    call add_test(test_besselix_overflow_guard())
+    call add_test(test_besseli_nu_cputime())
     call add_test(test_bessel_k0())
     call add_test(test_bessel_k1())
     call add_test(test_bessel_i0())
@@ -1540,6 +1545,164 @@ program bessels_test
 
        success = timep < 3*time + 1e-6_BK
     end function test_besselk_nu_cputime
+
+    ! Test besseli(integer nu, x) against netlib's RIBESL on a representative grid.
+    logical function test_besseli_integer() result(success)
+       use bessels_ribesl, only: RIBESL
+
+       real(BK), parameter :: RTOL = 1e-7_BK
+       real(BK), parameter :: ATOL = 1e-12_BK
+       real(BK), parameter :: x_test(*) = [0.01_BK, 0.1_BK, 1.0_BK, 5.0_BK, 20.0_BK, 50.0_BK, 100.0_BK]
+       real(BK) :: x, ref, fun, err
+       real(BK), allocatable :: ri(:)
+       integer  :: i, n, ierr
+
+       success = .true.
+       allocate(ri(120))
+
+       do i = 1, size(x_test)
+          x = x_test(i)
+          call RIBESL(X=x, ALPHA=ZERO, NB=80, IZE=1, B=ri, NCALC=ierr)
+          if (ierr < 0) cycle
+          do n = 0, min(ierr-1, 60)
+             ref = ri(n+1)
+             fun = besseli(real(n, BK), x)
+             if (ref > 1e+250_BK) cycle
+             if (abs(ref) < 1e-280_BK) cycle
+             err = abs(fun - ref) * rewt(ref, RTOL, ATOL)
+             if (err >= ONE) then
+                success = .false.
+                print *, '[besseli_int] n=',n,' x=',x,' package=',fun,' ref=',ref,' relerr=',err
+             end if
+          end do
+       end do
+
+    end function test_besseli_integer
+
+    ! Test besseli(non-integer nu, x).
+    logical function test_besseli_noninteger() result(success)
+       use bessels_ribesl, only: RIBESL
+
+       real(BK), parameter :: RTOL = 1e-6_BK
+       real(BK), parameter :: ATOL = 1e-12_BK
+       real(BK), parameter :: x_test(*) = [0.1_BK, 1.0_BK, 5.0_BK, 20.0_BK, 50.0_BK]
+       real(BK), parameter :: alpha_test(*) = [0.25_BK, 0.5_BK, 0.7_BK]
+       real(BK) :: x, alpha, ref, fun, err
+       real(BK), allocatable :: ri(:)
+       integer  :: i, j, n, ierr
+
+       success = .true.
+       allocate(ri(120))
+
+       do i = 1, size(x_test)
+          do j = 1, size(alpha_test)
+             x = x_test(i)
+             alpha = alpha_test(j)
+             call RIBESL(X=x, ALPHA=alpha, NB=60, IZE=1, B=ri, NCALC=ierr)
+             if (ierr < 0) cycle
+             do n = 0, min(ierr-1, 40)
+                ref = ri(n+1)
+                fun = besseli(alpha + real(n, BK), x)
+                if (ref > 1e+250_BK) cycle
+                if (abs(ref) < 1e-280_BK) cycle
+                err = abs(fun - ref) * rewt(ref, RTOL, ATOL)
+                if (err >= ONE) then
+                   success = .false.
+                   print *, '[besseli_nu] nu=',alpha+n,' x=',x,' package=',fun,' ref=',ref,' relerr=',err
+                end if
+             end do
+          end do
+       end do
+
+    end function test_besseli_noninteger
+
+    ! Verify I_{-nu}(x) = I_nu(x) + (2/pi) sin(pi nu) K_nu(x).
+    logical function test_besseli_negative_nu_reflection() result(success)
+       use bessels_constants, only: PI, TWOOPI
+
+       real(BK), parameter :: RTOL = 1e-9_BK
+       real(BK), parameter :: ATOL = 1e-13_BK
+       real(BK), parameter :: nu_test(*) = [0.25_BK, 0.5_BK, 2.5_BK]
+       real(BK), parameter :: x_test(*) = [0.5_BK, 2.0_BK, 5.0_BK, 20.0_BK]
+       real(BK) :: nu, x, lhs, rhs, err
+       integer :: i, j
+
+       success = .true.
+
+       do i = 1, size(nu_test)
+          do j = 1, size(x_test)
+             nu = nu_test(i)
+             x  = x_test(j)
+             lhs = besseli(-nu, x)
+             rhs = besseli( nu, x) + TWOOPI*sin(PI*nu)*besselk(nu, x)
+             err = abs(lhs - rhs) * rewt(rhs, RTOL, ATOL)
+             if (err >= ONE) then
+                success = .false.
+                print *, '[besseli_neg_nu] nu=',nu,' x=',x,' lhs=',lhs,' rhs=',rhs,' relerr=',err
+             end if
+          end do
+       end do
+
+    end function test_besseli_negative_nu_reflection
+
+    ! besselix(0, 700) should be finite (~0.015) while besseli(0, 700) overflows.
+    logical function test_besselix_overflow_guard() result(success)
+       real(BK) :: a, b
+       success = .true.
+       a = besseli(0.0_BK, 700.0_BK)
+       b = besselix(0.0_BK, 700.0_BK)
+       if (.not. (a > 1e280_BK)) then
+          success = .false.
+          print *, '[besselix_guard] besseli(0,700) expected to overflow to large value: got ',a
+       end if
+       if (.not. (b > 0.005_BK .and. b < 0.1_BK)) then
+          success = .false.
+          print *, '[besselix_guard] besselix(0,700) expected ~0.015: got ',b
+       end if
+    end function test_besselix_overflow_guard
+
+    ! Benchmark besseli(0.5, x) vs. netlib RIBESL.
+    logical function test_besseli_nu_cputime() result(success)
+       use bessels_ribesl, only: RIBESL
+
+       integer, parameter :: nsize = 5000
+       integer, parameter :: ntest = 50
+       real(BK), parameter :: xmin = 0.1_BK
+       real(BK), parameter :: xmax = 30.0_BK
+       real(BK), allocatable :: x(:), pa(:), z(:)
+       real(BK) :: this(2)
+       integer :: i, j, ierr
+       real(BK) :: time, timep, c_start, c_end
+       allocate(x(nsize), pa(nsize), z(ntest))
+
+       call random_number(x)
+       x = xmin*(ONE-x) + xmax*x
+
+       time = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          do j = 1, nsize
+             call RIBESL(X=x(j), ALPHA=0.5_BK, NB=1, IZE=1, B=this, NCALC=ierr)
+             pa(j) = this(1)
+          end do
+          call cpu_time(c_end)
+          z(i) = sum(pa)
+          time = time + c_end - c_start
+       end do
+       print "('[besseli_nu] NETLIB    time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*time/(nsize*ntest), sum(z)
+
+       timep = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          pa = besseli(0.5_BK, x)
+          call cpu_time(c_end)
+          z(i) = sum(pa)
+          timep = timep + c_end - c_start
+       end do
+       print "('[besseli_nu] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*timep/(nsize*ntest), sum(z)
+
+       success = .true.
+    end function test_besseli_nu_cputime
 
     ! Test approximated cube root
     logical function test_cuberoot() result(success)

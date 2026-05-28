@@ -432,7 +432,7 @@ program bessels_test
 
     ! Test bessel k0 function
     logical function test_bessel_k0() result(success)
-      use rjk, only: RKBESL
+      use bessels_rkbesl, only: RKBESL
 
       integer, parameter :: NTEST = 100000
 
@@ -469,7 +469,7 @@ program bessels_test
 
     ! Test bessel j0 cpu time
     logical function test_bessel_k0_cputime() result(success)
-        use rjk
+        use bessels_rkbesl, only: RKBESL
 
         integer, parameter :: nsize = 100000
         integer, parameter :: ntest = 100
@@ -517,7 +517,7 @@ program bessels_test
 
     ! Test bessel k0 function
     logical function test_bessel_k1() result(success)
-      use rjk, only: RKBESL
+      use bessels_rkbesl, only: RKBESL
 
       integer, parameter :: NTEST = 10000
 
@@ -561,7 +561,7 @@ program bessels_test
 
     ! Test bessel j0 cpu time
     logical function test_bessel_k1_cputime() result(success)
-        use rjk
+        use bessels_rkbesl, only: RKBESL
 
         integer, parameter :: nsize = 100000
         integer, parameter :: ntest = 100
@@ -607,7 +607,7 @@ program bessels_test
 
     ! Test bessel i0 function
     logical function test_bessel_i0() result(success)
-      use rji, only: RIBESL
+      use bessels_ribesl, only: RIBESL
 
       integer, parameter :: NTEST = 2000
       real(BK), parameter :: xmin =   0.0_BK
@@ -648,7 +648,7 @@ program bessels_test
 
     ! Test bessel j0 cpu time
     logical function test_bessel_i0_cputime() result(success)
-        use rji
+        use bessels_ribesl, only: RIBESL
 
         integer, parameter :: nsize = 1000
         integer, parameter :: ntest = 100
@@ -693,7 +693,7 @@ program bessels_test
 
     ! Test bessel k0 function
     logical function test_bessel_i1() result(success)
-      use rji
+      use bessels_ribesl, only: RIBESL
 
       integer, parameter :: NTEST = 2000
 
@@ -809,7 +809,7 @@ program bessels_test
 
     ! Test bessel j0 cpu time
     logical function test_bessel_i1_cputime() result(success)
-        use rji
+        use bessels_ribesl, only: RIBESL
 
         integer, parameter :: nsize = 100000
         integer, parameter :: ntest = 100

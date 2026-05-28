@@ -67,10 +67,10 @@
 			<Add library="gfortran" />
 			<Add library="quadmath" />
 		</Linker>
-		<Unit filename="../src/3rd_party/ribesl.f">
+		<Unit filename="../test/3rd_party/ribesl.f90">
 			<Option weight="0" />
 		</Unit>
-		<Unit filename="../src/3rd_party/rkbesl.f">
+		<Unit filename="../test/3rd_party/rkbesl.f90">
 			<Option weight="0" />
 		</Unit>
 		<Unit filename="../src/bessels.f90">

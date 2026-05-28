@@ -34,7 +34,7 @@ Not yet implemented:
 A simple build can be achieved by running:
 
 ```
- gfortran -ffree-line-length-none -O3 -march=native -ffast-math src/3rd_party/ribesl.f src/3rd_party/rkbesl.f src/bessels_constants.f90 src/bessels.f90 test/bessels_test.f90 -o bessels_test.exe
+ gfortran -ffree-line-length-none -O3 -march=native -ffast-math src/bessels_constants.f90 src/bessels.f90 test/3rd_party/ribesl.f90 test/3rd_party/rkbesl.f90 test/bessels_test.f90 -o bessels_test.exe
 ```
 
 These are the results of a sample performance test on an M1 Mac with gfortran 12.1.0.

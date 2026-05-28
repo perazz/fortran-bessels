@@ -52,7 +52,7 @@ Four argument regions, the same for `Ai` and `Bi` (with different coefficient ta
 - `test_airyaix_overflow_guard` — `airyaix(100.0)` should be `O(1)` while `airyai(100.0)` underflows.
 - `test_airyai_cputime`, `test_airybi_cputime` — benchmark block.
 
-No netlib comparison — netlib `specfun` Airy is in `src/3rd_party/` only if we add it, and Bessels.jl avoids that route deliberately. Use tabulated reference values.
+No netlib comparison — netlib `specfun` Airy is in `test/3rd_party/` only if we add it, and Bessels.jl avoids that route deliberately. Use tabulated reference values.
 
 ## Done when
 

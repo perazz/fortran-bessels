@@ -7,10 +7,14 @@ description = "Fortran Bessels library"
 homepage    = "https://github.com/perazz/fortran-bessels"
 keywords    = ["math","bessel","bessel functions","special functions"]
 
+[fortran]
+source-form = "default"
+
 [build]
 auto-executables = false
 auto-examples    = false
 auto-tests       = true
+module-naming    = "bessels"
 
 [library]
 source-dir  = "src"

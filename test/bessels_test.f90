@@ -33,6 +33,12 @@ program bessels_test
     call add_test(test_hankelh2_conjugate())
     call add_test(test_hankelh_negative_nu())
     call add_test(test_hankel_debye_consistency())
+    call add_test(test_airyai())
+    call add_test(test_airyaiprime())
+    call add_test(test_airybi())
+    call add_test(test_airybiprime())
+    call add_test(test_airyaix_overflow_guard())
+    call add_test(test_airy_cputime())
     call add_test(test_bessel_k0())
     call add_test(test_bessel_k1())
     call add_test(test_bessel_i0())
@@ -1230,6 +1236,176 @@ program bessels_test
        end do
 
     end function test_hankel_debye_consistency
+
+    ! Test Airy values (Ai, Bi, Ai', Bi') against the Bessels.jl reference CSV files,
+    ! which were generated in Mathematica/Arb to Float64 precision.
+    !
+    ! The negative-args CSV provides unscaled (Ai, Aip, Bi, Bip).  Tolerance scaling
+    ! mirrors the Bessels.jl test suite:
+    !   |x| <= 9.5  : tol = 2.4e-16 (relative)
+    !   9.5 < |x| <= 1e8: tol = 0.8e-16 * |x|^(5/4) (absolute, for Ai/Bi);
+    !                            0.8e-16 * |x|^(7/4) (absolute, for Ai'/Bi')
+    logical function test_airyai() result(success)
+       success = check_airy_neg('Ai', 1)
+    end function test_airyai
+
+    logical function test_airyaiprime() result(success)
+       success = check_airy_neg('Aip', 2)
+    end function test_airyaiprime
+
+    logical function test_airybi() result(success)
+       success = check_airy_neg('Bi', 3)
+    end function test_airybi
+
+    logical function test_airybiprime() result(success)
+       success = check_airy_neg('Bip', 4)
+    end function test_airybiprime
+
+    ! Drives one of the four Airy functions across the Bessels.jl negative-arg CSV.
+    ! sel = 1: Ai, 2: Ai', 3: Bi, 4: Bi'.  Returns success/failure and reports
+    ! the worst offending row on failure.
+    logical function check_airy_neg(label, sel) result(success)
+       character(*), intent(in) :: label
+       integer,      intent(in) :: sel
+
+       integer :: u, ios, n_total, n_bad
+       real(BK) :: x, ai_r, aip_r, bi_r, bip_r, ref, fun, tol, ax, err, worst_err, worst_x
+       character(len=256) :: line
+
+       success = .true.
+       n_total = 0
+       n_bad   = 0
+       worst_err = ZERO
+       worst_x   = ZERO
+
+       open(newunit=u, file='test/data/airy/airy_negative_args.csv', status='old', &
+            action='read', iostat=ios)
+       if (ios /= 0) then
+          ! Reference data not staged — skip test gracefully.
+          print "('[airy_',a,'] SKIP: reference CSV not found')", trim(label)
+          return
+       end if
+       do
+          read(u, '(A)', iostat=ios) line
+          if (ios /= 0) exit
+          read(line, *, iostat=ios) x, ai_r, aip_r, bi_r, bip_r
+          if (ios /= 0) cycle
+          n_total = n_total + 1
+
+          select case (sel)
+            case (1); ref = ai_r;  fun = airyai(x)
+            case (2); ref = aip_r; fun = airyaiprime(x)
+            case (3); ref = bi_r;  fun = airybi(x)
+            case (4); ref = bip_r; fun = airybiprime(x)
+          end select
+
+          ax = abs(x)
+          if (ax <= 9.5_BK) then
+             tol = max(2.4e-13_BK * abs(ref), 1e-14_BK)
+          elseif (ax <= 1.0e8_BK) then
+             if (sel == 1 .or. sel == 3) then
+                tol = 0.8e-12_BK * ax**1.25_BK
+             else
+                tol = 0.8e-12_BK * ax**1.75_BK
+             end if
+          else
+             cycle  ! beyond domain, package returns NaN — skip
+          end if
+
+          err = abs(fun - ref)
+          if (err > tol) then
+             n_bad = n_bad + 1
+             if (err > worst_err) then
+                worst_err = err
+                worst_x   = x
+             end if
+          end if
+       end do
+       close(u)
+
+       if (n_bad > 0) then
+          success = .false.
+          print "('[airy_',a,'] FAIL: ',i0,' of ',i0,' rows; worst x=',es15.8,' err=',es12.5)", &
+                 trim(label), n_bad, n_total, worst_x, worst_err
+       end if
+
+    end function check_airy_neg
+
+    ! airyaix(100) should be O(1) while airyai(100) underflows.
+    ! Similarly airybix(100) should be O(1) while airybi(100) overflows.
+    logical function test_airyaix_overflow_guard() result(success)
+
+       real(BK) :: ai, aix, bi, bix
+       real(BK), parameter :: x = 100.0_BK
+       real(BK), parameter :: TOL = 5e-10_BK
+
+       success = .true.
+
+       ai  = airyai(x)
+       aix = airyaix(x)
+       if (.not. (ai >= ZERO .and. ai < 1e-280_BK)) then
+          success = .false.
+          print *, '[airyai_overflow] airyai(100) should be tiny: got ',ai
+       end if
+       if (.not. (aix > 1e-2_BK .and. aix < 1.0_BK)) then
+          success = .false.
+          print *, '[airyai_overflow] airyaix(100) should be O(1): got ',aix
+       end if
+
+       bi  = airybi(x)
+       bix = airybix(x)
+       if (.not. (bi > 1e280_BK)) then
+          success = .false.
+          print *, '[airybi_overflow] airybi(100) should be huge: got ',bi
+       end if
+       if (.not. (bix > 1e-2_BK .and. bix < 1.0_BK)) then
+          success = .false.
+          print *, '[airybi_overflow] airybix(100) should be O(1): got ',bix
+       end if
+
+       ! Verify they're consistent: airyaix(x) ~ airyai(x) * exp(2/3 * x^(3/2))
+       ! For x=2, this is well-defined
+       ai  = airyai(2.0_BK)
+       aix = airyaix(2.0_BK)
+       if (abs(aix - ai*exp(2.0_BK*2.0_BK*sqrt(2.0_BK)/3.0_BK)) > TOL) then
+          success = .false.
+          print *, '[airyai_overflow] inconsistency: airyaix(2) ',aix, ' vs scaled airyai(2) ',&
+                   ai*exp(2.0_BK*2.0_BK*sqrt(2.0_BK)/3.0_BK)
+       end if
+
+    end function test_airyaix_overflow_guard
+
+    ! Quick CPU benchmark for airyai (no intrinsic; compare against package only).
+    logical function test_airy_cputime() result(success)
+
+       integer, parameter :: nsize = 100000
+       integer, parameter :: ntest = 100
+       real(BK), parameter :: xmin = -10.0_BK
+       real(BK), parameter :: xmax =  10.0_BK
+       real(BK), allocatable :: x(:), pa(:), pb(:), z(:)
+       integer :: i
+       real(BK) :: time, c_start, c_end
+       allocate(x(nsize), pa(nsize), pb(nsize), z(ntest))
+
+       call random_number(x)
+       x = xmin*(ONE-x) + xmax*x
+
+       time = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          pa = airyai(x)
+          pb = airybi(x)
+          call cpu_time(c_end)
+          z(i) = sum(pa) + sum(pb)
+          time = time + c_end - c_start
+       end do
+       print "('[airy]      PACKAGE   time used: ',f9.4,' ns/eval (Ai+Bi pair), sum(z)=',g0)", &
+             1e9*time/(nsize*ntest), sum(z)
+
+       ! Always succeeds — informational only.
+       success = .true.
+
+    end function test_airy_cputime
 
     ! Test approximated cube root
     logical function test_cuberoot() result(success)

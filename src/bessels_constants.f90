@@ -49,6 +49,7 @@ module bessels_constants
 
     real(BK), parameter :: THPIO4   = 2.35619449019234492885_BK
     real(BK), parameter :: SQ2PI    = 2.5066282746310007_BK
+    real(BK), parameter :: PIPOW3O2 = PI * sqrt(PI)     ! pi^(3/2)
 
     complex(BK), parameter :: IM    = (ZERO,ONE) ! The imaginary unit
 
@@ -964,6 +965,28 @@ module bessels_constants
        real(BK), intent(in) :: x,p(4)
        y = ((p(4)*x+p(3))*x+p(2))*x+p(1)
     end function evalpoly4
+
+    ! Use the Clenshaw algorithm to recursively evaluate a linear combination of Chebyshev polynomials.
+    pure real(BK) function clenshaw_chebyshev(x, c) result(cheb)
+       real(BK), intent(in) :: x, c(:)
+
+       real(BK) :: x2,c0,c1,a,b
+       integer  :: lc,i
+
+       lc = size(c)
+       x2 = 2*x
+
+       c0 = c(lc-1)
+       c1 = c(lc)
+       do i=lc-2,1,-1
+          a = c(i) - c1
+          b = c0 + c1 * x2
+          c0 = a
+          c1 = b
+       end do
+
+       cheb = c0 + c1 * x
+    end function clenshaw_chebyshev
 
     elemental real(BK) function muladd(A,x,y) result(axpy)
        real(BK), intent(in) :: A,x,y

@@ -18,6 +18,8 @@ module bessels
     use bessels_constants
     use bessels_debye
     use bessels_gamma, only: gamma_BK
+    use bessels_airy,  only: airyai,airyaiprime,airybi,airybiprime, &
+                              airyaix,airyaiprimex,airybix,airybiprimex
 
     implicit none
     private
@@ -30,6 +32,9 @@ module bessels
     public :: bessely0,bessely1,bessely
     public :: besselk0,besselk1
     public :: besselh,hankelh1,hankelh2
+
+    public :: airyai,airyaiprime,airybi,airybiprime
+    public :: airyaix,airyaiprimex,airybix,airybiprimex
 
     public :: gamma_BK
 
@@ -450,28 +455,6 @@ module bessels
         cheb%im = clenshaw_chebyshev(nu2, a)
 
      end function bessely_chebyshev_low_orders
-
-     ! use the Clenshaw algorithm to recursively evaluate a linear combination of Chebyshev polynomials
-     pure real(BK) function clenshaw_chebyshev(x, c) result(cheb)
-        real(BK), intent(in) :: x, c(:)
-
-        real(BK) :: x2,c0,c1,a,b
-        integer  :: lc,i
-
-        lc = size(c)
-        x2 = 2*x
-
-        c0 = c(lc-1)
-        c1 = c(lc)
-        do i=lc-2,1,-1
-           a = c(i) - c1
-           b = c0 + c1 * x2
-           c0 = a
-           c1 = b
-        end do
-
-        cheb = c0 + c1 * x
-     end function clenshaw_chebyshev
 
     ! Bessel function of the second kind of order nu, ``Y_{nu}(x)``.
     ! nu and x must be real and nu and x must be positive.

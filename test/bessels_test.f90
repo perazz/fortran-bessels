@@ -26,6 +26,10 @@ program bessels_test
     call add_test(test_bessel_jn())
     call add_test(test_bessel_y0())
     call add_test(test_bessel_y1())
+    call add_test(test_besselj_up_recurrence())
+    call add_test(test_bessely_nu_integer())
+    call add_test(test_hankelh1_consistency())
+    call add_test(test_hankelh2_conjugate())
     call add_test(test_bessel_k0())
     call add_test(test_bessel_k1())
     call add_test(test_bessel_i0())
@@ -36,6 +40,8 @@ program bessels_test
     call add_test(test_bessel_jn_cputime())
     call add_test(test_bessel_y0_cputime())
     call add_test(test_bessel_y1_cputime())
+    call add_test(test_bessely_nu_cputime())
+    call add_test(test_hankelh1_cputime())
     call add_test(test_bessel_k0_cputime())
     call add_test(test_bessel_k1_cputime())
     call add_test(test_bessel_i0_cputime())
@@ -730,7 +736,6 @@ program bessels_test
 
     ! Test bessel k0 function
     logical function test_gamma() result(success)
-      use bessels_gamma
 
       integer, parameter :: NTEST = 2000
 
@@ -765,7 +770,6 @@ program bessels_test
 
     ! Test bessel j0 cpu time
     logical function test_gamma_cputime() result(success)
-        use bessels_gamma
 
         integer, parameter :: nsize = 100000
         integer, parameter :: ntest = 100
@@ -858,6 +862,223 @@ program bessels_test
        real(BK), intent(in) :: x,RTOL,ATOL
        rewt = ONE/(RTOL*abs(x)+ATOL)
     end function rewt
+
+    ! Regression test for besselj_up_recurrence bug fix.
+    ! Forward Y-recurrence from Y_0, Y_1 must reach the correct Y_n for integer n,
+    ! with coefficient (2k/x) updated each step. Before the fix the coefficient was
+    ! frozen at nu_start*2/x and the loop counter ran backwards.
+    logical function test_besselj_up_recurrence() result(success)
+       use bessels_constants, only: besselj_up_recurrence
+
+       real(BK), parameter :: RTOL = 1e-10_BK
+       real(BK), parameter :: ATOL = 1e-14_BK
+       real(BK), parameter :: x_test(3) = [0.5_BK, 2.0_BK, 10.0_BK]
+       real(BK) :: x, Y_pkg, Y_next, Y_intr, err
+       integer  :: n, i
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x = x_test(i)
+          do n = 1, 10
+             call besselj_up_recurrence(x, bessely1(x), bessely0(x), &
+                                        ONE, real(n,BK), Y_pkg, Y_next)
+             Y_intr = bessel_yn(n, x)
+             err = abs(Y_pkg - Y_intr) * rewt(Y_intr, RTOL, ATOL)
+             if (err >= ONE) then
+                success = .false.
+                print *, '[besselj_up_recurrence] x=', x, ' n=', n, &
+                         ' package=', Y_pkg, ' intrinsic=', Y_intr, ' relerr=', err
+             end if
+          end do
+       end do
+
+    end function test_besselj_up_recurrence
+
+    ! Test bessely(real nu, x) against bessel_yn intrinsic for integer nu.
+    logical function test_bessely_nu_integer() result(success)
+
+       integer, parameter :: NTEST = 1000
+       real(BK), parameter :: xmin = 0.1_BK
+       real(BK), parameter :: xmax = 1e+2_BK
+       real(BK), parameter :: RTOL = 1e-6_BK
+       real(BK), parameter :: ATOL = 1e-10_BK
+       real(BK) :: x(NTEST), fun(NTEST), intr(NTEST), err(NTEST)
+       integer  :: i, n
+
+       call random_number(x)
+       x = xmin*(ONE-x) + xmax*x
+
+       success = .true.
+
+       do n = 0, 10
+          do i = 1, NTEST
+             fun(i) = bessely(real(n,BK), x(i))
+          end do
+          intr = bessel_yn(n, x)
+          err  = abs(fun-intr) * rewt(intr, RTOL, ATOL)
+
+          success = success .and. all(err<one)
+
+          if (.not. all(err<one)) then
+             do i = 1, NTEST
+                if (err(i) >= one) &
+                   print *, '[bessely_nu_int] n=',n,' x=',x(i),' package=',fun(i),' intrinsic=',intr(i),' relerr=',err(i)
+             end do
+          end if
+       end do
+
+    end function test_bessely_nu_integer
+
+    ! Test hankelh1(integer n, x) = J_n(x) + i*Y_n(x).
+    ! Restricted to integer nu — non-integer nu paths in bessely_positive_args
+    ! / hankel_debye have pre-existing port bugs (see todo/07-nonintegerNU-bugs.md).
+    logical function test_hankelh1_consistency() result(success)
+
+       real(BK), parameter :: RTOL = 1e-10_BK
+       real(BK), parameter :: ATOL = 1e-14_BK
+       real(BK), parameter :: x_test(4) = [0.5_BK, 5.0_BK, 30.0_BK, 100.0_BK]
+       real(BK) :: x, Jref, Yref, err_r, err_i
+       complex(BK) :: H
+       integer :: i
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x = x_test(i)
+
+          ! nu = 0
+          H    = hankelh1(0.0_BK, x)
+          Jref = besselj0(x)
+          Yref = bessely0(x)
+          err_r = abs(H%re - Jref) * rewt(Jref, RTOL, ATOL)
+          err_i = abs(H%im - Yref) * rewt(Yref, RTOL, ATOL)
+          if (err_r >= ONE .or. err_i >= ONE) then
+             success = .false.
+             print *, '[hankelh1_cons] nu=0 x=', x, ' H=', H, ' J=', Jref, ' Y=', Yref, &
+                      ' err_r=', err_r, ' err_i=', err_i
+          end if
+
+          ! nu = 1
+          H    = hankelh1(1.0_BK, x)
+          Jref = besselj1(x)
+          Yref = bessely1(x)
+          err_r = abs(H%re - Jref) * rewt(Jref, RTOL, ATOL)
+          err_i = abs(H%im - Yref) * rewt(Yref, RTOL, ATOL)
+          if (err_r >= ONE .or. err_i >= ONE) then
+             success = .false.
+             print *, '[hankelh1_cons] nu=1 x=', x, ' H=', H, ' J=', Jref, ' Y=', Yref, &
+                      ' err_r=', err_r, ' err_i=', err_i
+          end if
+       end do
+
+    end function test_hankelh1_consistency
+
+    ! Test hankelh2(n, x) = conjg(hankelh1(n, x)) for real x > 0, integer nu.
+    logical function test_hankelh2_conjugate() result(success)
+
+       real(BK), parameter :: TOL = 1e-14_BK
+       real(BK), parameter :: x_test(4) = [0.5_BK, 5.0_BK, 30.0_BK, 100.0_BK]
+       real(BK), parameter :: nu_test(3) = [0.0_BK, 1.0_BK, 3.0_BK]
+       complex(BK) :: H1, H2
+       real(BK) :: diff
+       integer :: i, j
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          do j = 1, size(nu_test)
+             H1 = hankelh1(nu_test(j), x_test(i))
+             H2 = hankelh2(nu_test(j), x_test(i))
+             diff = abs(H2 - conjg(H1))
+             if (diff > TOL) then
+                success = .false.
+                print *, '[hankelh2_conj] nu=', nu_test(j), ' x=', x_test(i), &
+                         ' H1=', H1, ' H2=', H2, ' |H2-conjg(H1)|=', diff
+             end if
+          end do
+       end do
+
+    end function test_hankelh2_conjugate
+
+    ! Benchmark bessely(real nu, x) vs. bessel_yn intrinsic at nu=1.
+    logical function test_bessely_nu_cputime() result(success)
+
+       integer, parameter :: nsize = 100000
+       integer, parameter :: ntest = 100
+       real(BK), parameter :: xmin = 0.1_BK
+       real(BK), parameter :: xmax = 1e+3_BK
+       real(BK), allocatable :: x(:), intrin(:), packge(:), z(:)
+       integer :: i
+       real(BK) :: time, timep, c_start, c_end
+       allocate(x(nsize), intrin(nsize), packge(nsize), z(ntest))
+
+       call random_number(x)
+       x = xmin*(ONE-x) + xmax*x
+
+       time = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          intrin = bessel_yn(1, x)
+          call cpu_time(c_end)
+          z(i) = sum(intrin)
+          time = time + c_end - c_start
+       end do
+       print "('[bessely_nu] INTRINSIC time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*time/(nsize*ntest), sum(z)
+
+       timep = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          packge = bessely(1.0_BK, x)
+          call cpu_time(c_end)
+          z(i) = sum(packge)
+          timep = timep + c_end - c_start
+       end do
+       print "('[bessely_nu] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*timep/(nsize*ntest), sum(z)
+
+       success = timep < 3*time
+
+    end function test_bessely_nu_cputime
+
+    ! Benchmark hankelh1(0, x) vs. assembling cmplx(besselj0, bessely0) by hand.
+    logical function test_hankelh1_cputime() result(success)
+
+       integer, parameter :: nsize = 100000
+       integer, parameter :: ntest = 100
+       real(BK), parameter :: xmin = 0.1_BK
+       real(BK), parameter :: xmax = 1e+3_BK
+       real(BK), allocatable :: x(:), z(:)
+       complex(BK), allocatable :: baseline(:), packge(:)
+       integer :: i
+       real(BK) :: time, timep, c_start, c_end
+       allocate(x(nsize), baseline(nsize), packge(nsize), z(ntest))
+
+       call random_number(x)
+       x = xmin*(ONE-x) + xmax*x
+
+       time = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          baseline = cmplx(besselj0(x), bessely0(x), BK)
+          call cpu_time(c_end)
+          z(i) = sum(baseline%re)
+          time = time + c_end - c_start
+       end do
+       print "('[hankelh1]  BASELINE  time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*time/(nsize*ntest), sum(z)
+
+       timep = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          packge = hankelh1(0.0_BK, x)
+          call cpu_time(c_end)
+          z(i) = sum(packge%re)
+          timep = timep + c_end - c_start
+       end do
+       print "('[hankelh1]  PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*timep/(nsize*ntest), sum(z)
+
+       success = timep < 3*time
+
+    end function test_hankelh1_cputime
 
     ! Test approximated cube root
     logical function test_cuberoot() result(success)

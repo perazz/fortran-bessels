@@ -748,7 +748,7 @@ module bessels_constants
     ! Power series for Y_{nu}(x)
 
     ! Use power series form of J_v(x) to calculate Y_v(x) with
-    ! Y_v(x) = (J_v(x)cos(v*¹) - J_{-v}(x)) / sin(v*pi),    v ~= 0, 1, 2, ...
+    ! Y_v(x) = (J_v(x)cos(v*ï¿½) - J_{-v}(x)) / sin(v*pi),    v ~= 0, 1, 2, ...
     ! combined to calculate both J_v and J_{-v} in the same loop (J_{-v} always converges slower)
 
     ! this works well for small arguments x < 7.0 for rel. error ~1e-14
@@ -852,8 +852,8 @@ module bessels_constants
 
         ! avoid inexact floating points when nu is a float
         do while (nu<nu_end+HALF)
-            jnu2 = [jnu2(2),nu_start*x2*jnu2(2)-jnu2(1)]
-            nu = nu-ONE
+            jnu2 = [jnu2(2),nu*x2*jnu2(2)-jnu2(1)]
+            nu = nu+ONE
         end do
 
         a = jnu2(1)

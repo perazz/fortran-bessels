@@ -48,6 +48,11 @@ program bessels_test
     call add_test(test_besseli_negative_nu_reflection())
     call add_test(test_besselix_overflow_guard())
     call add_test(test_besseli_nu_cputime())
+    call add_test(test_sphericalbesselj_int())
+    call add_test(test_sphericalbessely_int())
+    call add_test(test_sphericalbesseli_int())
+    call add_test(test_sphericalbesselk_int())
+    call add_test(test_sphericalbessel_halfinteger_consistency())
     call add_test(test_bessel_k0())
     call add_test(test_bessel_k1())
     call add_test(test_bessel_i0())
@@ -1703,6 +1708,215 @@ program bessels_test
 
        success = .true.
     end function test_besseli_nu_cputime
+
+    ! Spherical Bessel j_n vs. closed-form low-order expressions and recurrence consistency.
+    !   j_0(x) = sin(x)/x
+    !   j_1(x) = sin(x)/x^2 - cos(x)/x
+    !   j_2(x) = (3/x^2 - 1) sin(x)/x - 3 cos(x)/x^2
+    logical function test_sphericalbesselj_int() result(success)
+       real(BK), parameter :: RTOL = 1e-9_BK
+       real(BK), parameter :: ATOL = 1e-13_BK
+       real(BK), parameter :: x_test(*) = [0.5_BK, 1.0_BK, 5.0_BK, 10.0_BK, 50.0_BK]
+       real(BK) :: x, ref, fun, err, sx, cx
+       integer :: i
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x  = x_test(i)
+          sx = sin(x); cx = cos(x)
+
+          ref = sx/x;                 fun = sphericalbesselj(0.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sj0] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = sx/x**2 - cx/x;       fun = sphericalbesselj(1.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sj1] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = (3.0_BK/x**2 - ONE)*sx/x - 3.0_BK*cx/x**2
+          fun = sphericalbesselj(2.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sj2] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+       end do
+
+    end function test_sphericalbesselj_int
+
+    ! Spherical Bessel y_n vs. closed-form low-order expressions.
+    !   y_0(x) = -cos(x)/x
+    !   y_1(x) = -cos(x)/x^2 - sin(x)/x
+    !   y_2(x) = -(3/x^2 - 1) cos(x)/x - 3 sin(x)/x^2
+    logical function test_sphericalbessely_int() result(success)
+       real(BK), parameter :: RTOL = 1e-9_BK
+       real(BK), parameter :: ATOL = 1e-13_BK
+       real(BK), parameter :: x_test(*) = [0.5_BK, 1.0_BK, 5.0_BK, 10.0_BK, 50.0_BK]
+       real(BK) :: x, ref, fun, err, sx, cx
+       integer :: i
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x  = x_test(i)
+          sx = sin(x); cx = cos(x)
+
+          ref = -cx/x;                fun = sphericalbessely(0.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sy0] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = -cx/x**2 - sx/x;      fun = sphericalbessely(1.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sy1] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = -(3.0_BK/x**2 - ONE)*cx/x - 3.0_BK*sx/x**2
+          fun = sphericalbessely(2.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sy2] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+       end do
+
+    end function test_sphericalbessely_int
+
+    ! Spherical modified Bessel i_n vs. closed-form low-order expressions.
+    !   i_0(x) = sinh(x)/x
+    !   i_1(x) = (x cosh(x) - sinh(x))/x^2
+    !   i_2(x) = (x^2 sinh + 3*(sinh - x cosh))/x^3
+    logical function test_sphericalbesseli_int() result(success)
+       real(BK), parameter :: RTOL = 1e-9_BK
+       real(BK), parameter :: ATOL = 1e-13_BK
+       real(BK), parameter :: x_test(*) = [0.1_BK, 0.5_BK, 1.0_BK, 5.0_BK, 20.0_BK]
+       real(BK) :: x, ref, fun, err, sx, cx, x2
+       integer :: i
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x  = x_test(i)
+          sx = sinh(x); cx = cosh(x); x2 = x*x
+
+          ref = sx/x;                 fun = sphericalbesseli(0.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[si0] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = (x*cx - sx)/x2;       fun = sphericalbesseli(1.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[si1] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = (x2*sx + 3.0_BK*(sx - x*cx))/(x2*x)
+          fun = sphericalbesseli(2.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[si2] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+       end do
+
+    end function test_sphericalbesseli_int
+
+    ! Spherical modified Bessel k_n vs. closed-form low-order expressions.
+    !   k_0(x) = e^{-x}/x
+    !   k_1(x) = (1 + 1/x) e^{-x}/x
+    !   k_2(x) = (1 + 3/x + 3/x^2) e^{-x}/x
+    logical function test_sphericalbesselk_int() result(success)
+       real(BK), parameter :: RTOL = 1e-9_BK
+       real(BK), parameter :: ATOL = 1e-13_BK
+       real(BK), parameter :: x_test(*) = [0.5_BK, 1.0_BK, 5.0_BK, 20.0_BK]
+       real(BK) :: x, ref, fun, err, ex
+       integer :: i, n
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x  = x_test(i)
+          ex = exp(-x)
+
+          ref = ex/x;                 fun = sphericalbesselk(0.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sk0] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = (ONE + ONE/x)*ex/x;   fun = sphericalbesselk(1.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sk1] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = (ONE + 3.0_BK/x + 3.0_BK/(x*x))*ex/x
+          fun = sphericalbesselk(2.0_BK, x)
+          err = abs(fun-ref)*rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[sk2] x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ! Check symmetry k_{-n}(x) = k_{n-1}(x) for a couple of integer n.
+          do n = 1, 4
+             if (abs(sphericalbesselk(-real(n,BK), x) - sphericalbesselk(real(n-1,BK), x)) &
+                 > 1e-12_BK * abs(sphericalbesselk(real(n-1,BK), x))) then
+                success = .false.
+                print *, '[sk_sym] n=',n,' x=',x,' k_{-n}=',sphericalbesselk(-real(n,BK), x), &
+                         ' k_{n-1}=',sphericalbesselk(real(n-1,BK), x)
+             end if
+          end do
+       end do
+
+    end function test_sphericalbesselk_int
+
+    ! Verify the half-integer reduction: sphericalbesselj(5.5, x) = sqrt(pi/(2x)) * besselj(6.0, x).
+    logical function test_sphericalbessel_halfinteger_consistency() result(success)
+       use bessels_constants, only: PI
+
+       real(BK), parameter :: RTOL = 1e-9_BK
+       real(BK), parameter :: ATOL = 1e-13_BK
+       real(BK), parameter :: x_test(*) = [1.0_BK, 5.0_BK, 20.0_BK]
+       real(BK), parameter :: nu_test(*) = [0.5_BK, 1.5_BK, 5.5_BK]
+       real(BK) :: x, nu, j_sphere, j_redux, err
+       integer :: i, j
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          do j = 1, size(nu_test)
+             x  = x_test(i)
+             nu = nu_test(j)
+             ! For nu = m + 0.5, besselj(nu + 0.5, x) = besselj(m + 1, x), an integer call.
+             j_sphere = sphericalbesselj(nu, x)
+             j_redux  = sqrt(PI/(2.0_BK*x)) * besseljn(int(nu + 0.5_BK + 0.5_BK), x)
+             err = abs(j_sphere - j_redux) * rewt(j_redux, RTOL, ATOL)
+             if (err >= ONE) then
+                success = .false.
+                print *, '[sphj_consistency] nu=',nu,' x=',x,' sphere=',j_sphere, &
+                         ' redux=',j_redux,' relerr=',err
+             end if
+          end do
+       end do
+
+    end function test_sphericalbessel_halfinteger_consistency
 
     ! Test approximated cube root
     logical function test_cuberoot() result(success)

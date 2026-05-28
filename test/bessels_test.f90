@@ -26,6 +26,7 @@ program bessels_test
     call add_test(test_bessel_jn())
     call add_test(test_bessel_y0())
     call add_test(test_bessel_y1())
+    call add_test(test_besselj_up_recurrence())
     call add_test(test_bessel_k0())
     call add_test(test_bessel_k1())
     call add_test(test_bessel_i0())
@@ -858,6 +859,38 @@ program bessels_test
        real(BK), intent(in) :: x,RTOL,ATOL
        rewt = ONE/(RTOL*abs(x)+ATOL)
     end function rewt
+
+    ! Regression test for besselj_up_recurrence bug fix.
+    ! Forward Y-recurrence from Y_0, Y_1 must reach the correct Y_n for integer n,
+    ! with coefficient (2k/x) updated each step. Before the fix the coefficient was
+    ! frozen at nu_start*2/x and the loop counter ran backwards.
+    logical function test_besselj_up_recurrence() result(success)
+       use bessels_constants, only: besselj_up_recurrence
+
+       real(BK), parameter :: RTOL = 1e-10_BK
+       real(BK), parameter :: ATOL = 1e-14_BK
+       real(BK), parameter :: x_test(3) = [0.5_BK, 2.0_BK, 10.0_BK]
+       real(BK) :: x, Y_pkg, Y_next, Y_intr, err
+       integer  :: n, i
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x = x_test(i)
+          do n = 1, 10
+             call besselj_up_recurrence(x, bessely1(x), bessely0(x), &
+                                        ONE, real(n,BK), Y_pkg, Y_next)
+             Y_intr = bessel_yn(n, x)
+             err = abs(Y_pkg - Y_intr) * rewt(Y_intr, RTOL, ATOL)
+             if (err >= ONE) then
+                success = .false.
+                print *, '[besselj_up_recurrence] x=', x, ' n=', n, &
+                         ' package=', Y_pkg, ' intrinsic=', Y_intr, ' relerr=', err
+             end if
+          end do
+       end do
+
+    end function test_besselj_up_recurrence
 
     ! Test approximated cube root
     logical function test_cuberoot() result(success)

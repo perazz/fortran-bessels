@@ -39,6 +39,10 @@ program bessels_test
     call add_test(test_airybiprime())
     call add_test(test_airyaix_overflow_guard())
     call add_test(test_airy_cputime())
+    call add_test(test_besselk_integer())
+    call add_test(test_besselk_noninteger())
+    call add_test(test_besselkx_overflow_guard())
+    call add_test(test_besselk_nu_cputime())
     call add_test(test_bessel_k0())
     call add_test(test_bessel_k1())
     call add_test(test_bessel_i0())
@@ -1406,6 +1410,136 @@ program bessels_test
        success = .true.
 
     end function test_airy_cputime
+
+    ! Test besselk(integer nu, x) against netlib's RKBESL across a representative grid.
+    logical function test_besselk_integer() result(success)
+       use bessels_rkbesl, only: RKBESL
+
+       real(BK), parameter :: RTOL = 1e-8_BK
+       real(BK), parameter :: ATOL = 1e-12_BK
+       real(BK), parameter :: x_test(*) = [0.01_BK, 0.1_BK, 1.0_BK, 5.0_BK, 20.0_BK, 100.0_BK, 500.0_BK]
+       real(BK) :: x, ref, fun, err
+       real(BK), allocatable :: rk(:)
+       integer  :: i, n, ierr
+
+       success = .true.
+       allocate(rk(120))
+
+       do i = 1, size(x_test)
+          x = x_test(i)
+          call RKBESL(X=x, ALPHA=ZERO, NB=110, IZE=1, BK=rk, NCALC=ierr)
+          if (ierr < 0) cycle
+          do n = 0, min(ierr-1, 100)
+             ref = rk(n+1)
+             fun = besselk(real(n, BK), x)
+             if (ref > 1e+250_BK) cycle    ! netlib overflowed
+             if (ref < 1e-280_BK) cycle    ! underflowed reference
+             err = abs(fun - ref) * rewt(ref, RTOL, ATOL)
+             if (err >= ONE) then
+                success = .false.
+                print *, '[besselk_int] n=',n,' x=',x,' package=',fun,' ref=',ref,' relerr=',err
+             end if
+          end do
+       end do
+
+    end function test_besselk_integer
+
+    ! Test besselk(non-integer nu, x) against netlib's RKBESL on the same grid.
+    ! RKBESL accepts ALPHA in [0,1) and returns K_{alpha+n} for n=0..NB-1.
+    logical function test_besselk_noninteger() result(success)
+       use bessels_rkbesl, only: RKBESL
+
+       real(BK), parameter :: RTOL = 1e-7_BK
+       real(BK), parameter :: ATOL = 1e-12_BK
+       real(BK), parameter :: x_test(*) = [0.1_BK, 1.0_BK, 5.0_BK, 20.0_BK, 100.0_BK]
+       real(BK), parameter :: alpha_test(*) = [0.25_BK, 0.5_BK, 0.7_BK]
+       real(BK) :: x, alpha, ref, fun, err
+       real(BK), allocatable :: rk(:)
+       integer  :: i, j, n, ierr
+
+       success = .true.
+       allocate(rk(120))
+
+       do i = 1, size(x_test)
+          do j = 1, size(alpha_test)
+             x = x_test(i)
+             alpha = alpha_test(j)
+             call RKBESL(X=x, ALPHA=alpha, NB=80, IZE=1, BK=rk, NCALC=ierr)
+             if (ierr < 0) cycle
+             do n = 0, min(ierr-1, 50)
+                ref = rk(n+1)
+                fun = besselk(alpha + real(n, BK), x)
+                if (ref > 1e+250_BK) cycle
+                if (ref < 1e-280_BK) cycle
+                err = abs(fun - ref) * rewt(ref, RTOL, ATOL)
+                if (err >= ONE) then
+                   success = .false.
+                   print *, '[besselk_nu] nu=',alpha+n,' x=',x,' package=',fun,' ref=',ref,' relerr=',err
+                end if
+             end do
+          end do
+       end do
+
+    end function test_besselk_noninteger
+
+    ! besselkx(0, 700) should be finite (~sqrt(pi/1400)) while besselk(0, 700) underflows to 0.
+    logical function test_besselkx_overflow_guard() result(success)
+       real(BK) :: a, b
+       success = .true.
+       a = besselk(0.0_BK, 700.0_BK)
+       b = besselkx(0.0_BK, 700.0_BK)
+       if (.not. (a >= ZERO .and. a < 1e-280_BK)) then
+          success = .false.
+          print *, '[besselkx_guard] besselk(0,700) expected to underflow: got ',a
+       end if
+       if (.not. (b > 0.02_BK .and. b < 1.0_BK)) then
+          success = .false.
+          print *, '[besselkx_guard] besselkx(0,700) expected ~ sqrt(pi/1400): got ',b
+       end if
+    end function test_besselkx_overflow_guard
+
+    ! Benchmark besselk(0.5, x) vs. netlib RKBESL.
+    logical function test_besselk_nu_cputime() result(success)
+       use bessels_rkbesl, only: RKBESL
+
+       integer, parameter :: nsize = 50000
+       integer, parameter :: ntest = 50
+       real(BK), parameter :: xmin = 0.5_BK
+       real(BK), parameter :: xmax = 30.0_BK
+       real(BK), allocatable :: x(:), pa(:), z(:)
+       real(BK) :: this(2)
+       integer :: i, j, ierr
+       real(BK) :: time, timep, c_start, c_end
+       allocate(x(nsize), pa(nsize), z(ntest))
+
+       call random_number(x)
+       x = xmin*(ONE-x) + xmax*x
+
+       time = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          do j = 1, nsize
+             call RKBESL(X=x(j), ALPHA=0.5_BK, NB=1, IZE=1, BK=this, NCALC=ierr)
+             pa(j) = this(1)
+          end do
+          call cpu_time(c_end)
+          z(i) = sum(pa)
+          time = time + c_end - c_start
+       end do
+       print "('[besselk_nu] NETLIB    time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*time/(nsize*ntest), sum(z)
+
+       timep = ZERO
+       do i = 1, ntest
+          call cpu_time(c_start)
+          pa = besselk(0.5_BK, x)
+          call cpu_time(c_end)
+          z(i) = sum(pa)
+          timep = timep + c_end - c_start
+       end do
+       print "('[besselk_nu] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*timep/(nsize*ntest), sum(z)
+
+       success = timep < 3*time + 1e-6_BK
+    end function test_besselk_nu_cputime
 
     ! Test approximated cube root
     logical function test_cuberoot() result(success)

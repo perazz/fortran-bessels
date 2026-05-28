@@ -35,6 +35,11 @@ module bessels_debye
     public :: besseljy_large_argument
     public :: hankel_debye
 
+    ! Shared U-polynomial machinery used by besselk/besseli Debye expansions.
+    ! The "split" forms compute the (Uk_In, Uk_Kn) / (Uk_Jn, Uk_Yn) pair from a single
+    ! polynomial evaluation.  Public so bessels_besselk / bessels_besseli can reuse them.
+    public :: Uk_poly10, Uk_poly20
+
     interface Uk_poly20
         module procedure Uk_poly20
         module procedure Uk_poly20_split

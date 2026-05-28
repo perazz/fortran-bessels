@@ -20,6 +20,7 @@ module bessels
     use bessels_gamma, only: gamma_BK
     use bessels_airy,  only: airyai,airyaiprime,airybi,airybiprime, &
                               airyaix,airyaiprimex,airybix,airybiprimex
+    use bessels_besselk, only: besselk, besselkx
 
     implicit none
     private
@@ -30,7 +31,7 @@ module bessels
     public :: besseli0,besseli1
     public :: besselj0,besselj1,besseljn
     public :: bessely0,bessely1,bessely
-    public :: besselk0,besselk1
+    public :: besselk0,besselk1,besselk,besselkx
     public :: besselh,hankelh1,hankelh2
 
     public :: airyai,airyaiprime,airybi,airybiprime

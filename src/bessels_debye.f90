@@ -57,7 +57,7 @@ module bessels_debye
     elemental complex(BK) function hankel_debye(nu, x)
         real(BK), intent(in) :: nu, x
 
-        real(BK) :: vmx,vs,sqvs,n,p,p2,ab(2)
+        real(BK) :: vmx,vs,sqvs,n,p,p2
         complex(BK) :: coef_Yn,Uk_Yn
         intrinsic :: sqrt
 
@@ -73,8 +73,11 @@ module bessels_debye
         p    = nu/vs
         p2   = nu**2/vmx
 
-        ab    = Uk_poly_Hankel(p, nu, -p2, x) ! why p*im ?
-        Uk_Yn = IM*ab(2)
+        ! Julia uses split_evalpoly(-p*im/v, U_poly(-p2)).  Internally this returns a
+        ! complex value whose real part is the standard polynomial evaluation at xx = -p^2/v^2
+        ! (with even-index coefficients) and whose imaginary part is the analogous odd-index
+        ! accumulation multiplied by -p/v.  We compute both real components here directly.
+        Uk_Yn = Uk_poly_Hankel_complex(p, nu, -p2, x)
 
         hankel_debye = coef_Yn * Uk_Yn
 
@@ -273,6 +276,61 @@ module bessels_debye
 
     ! Debye large order expansion coefficients
     ! Implementation for arbitrary precision
+    ! Complex-valued b output of Uk_poly_Hankel for the Hankel function path.
+    ! Matches Julia's `_, Uk_Yn = Uk_poly_Hankel(p*im, v, -p^2, x)`.
+    !
+    ! The Julia call internally evaluates the polynomial at xx = (-p*im/v)^2 = -(p/v)^2 (real)
+    ! and then in the final reduction multiplies one accumulator by the purely imaginary
+    ! x = -(p/v)*im.  We do the same here entirely in real arithmetic and pack the result
+    ! into a complex number.
+    !
+    ! Argument convention mirrors Uk_poly_Hankel: pass `p` (real, = nu/vs), `v = nu`,
+    ! `p2_neg = -p^2` (negative), and `x`.
+    pure function Uk_poly_Hankel_complex(p, v, p2_neg, x) result(b)
+        real(BK), intent(in) :: p, v, p2_neg, x
+        complex(BK) :: b
+
+        real(BK) :: poly(22), xx, out, out2, povr_v
+        integer :: i, N
+
+        select case (BK)
+           case (real64)
+                if (v < 5.0_BK + 0.998_BK*x + 10.541_BK*cbrt(-x)) then
+                    call Uk_poly10(p2_neg, poly(1:11))
+                    N = 11
+                else
+                    call Uk_poly20(p2_neg, poly(1:21))
+                    N = 21
+                end if
+           case default
+                call Uk_poly_Jn_generic(p2_neg, poly(1:22))
+                N = 22
+        end select
+
+        povr_v = p/v
+        xx     = -povr_v*povr_v
+
+        out  = poly(N)
+        out2 = poly(N-1)
+        do i = N-2, 2, -2
+            out  = muladd(xx, out,  poly(i))
+            out2 = muladd(xx, out2, poly(i-1))
+        end do
+
+        ! Final reduction: Julia's split_evalpoly with x = -(p/v)*im gives, for odd N,
+        !   b = (xx*out + poly(1)) + (-out2*(p/v))*im
+        ! and for even N,
+        !   b = poly1_term_unused: instead out *= x first, then b = out2 + out
+        !   which translates to b_re = out2, b_im = -out*(p/v).
+        if (mod(N,2) == 0) then
+            b = cmplx(out2, -out*povr_v, BK)
+        else
+            out = muladd(xx, out, poly(1))
+            b   = cmplx(out, -out2*povr_v, BK)
+        end if
+
+    end function Uk_poly_Hankel_complex
+
     pure function Uk_poly_Hankel(p, v, p2, x) result(ab)
         real(BK), intent(in) :: p,v,p2,x
 

@@ -759,8 +759,8 @@ module bessels_constants
     ! Computes ``Y_{nu}(x)`` using the power series when nu is not an integer.
     ! In general, this is most accurate for small arguments and when nu > x.
     ! Outpus both (Y_{nu}(x), J_{nu}(x)).
-    pure function bessely_power_series(x, nu) result(YJ)
-       real(BK), intent(in) :: x, nu
+    pure function bessely_power_series(nu, x) result(YJ)
+       real(BK), intent(in) :: nu, x
        real(BK) :: YJ(2)
 
        real(real64) :: nu64,x64,out64,out264,a,b,t2,xo2,rnit,spi,cpi
@@ -972,7 +972,7 @@ module bessels_constants
 
     elemental logical function isinteger(x)
        real(BK), intent(in) :: x
-       isinteger = (x-nint(x))<epsilon(ZERO)
+       isinteger = abs(x-nint(x))<epsilon(ZERO)
     end function isinteger
 
 end module bessels_constants

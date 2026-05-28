@@ -245,12 +245,8 @@ module bessels
     ! Hankel function H^{(k)}_{nu}(x) = J_{nu}(x) + (-1)^{k+1} i*Y_{nu}(x) for k in {1, 2}.
     ! Real x > 0 only. Returns NaN+NaN*i for x <= 0.
     !
-    ! Implementation note: we always compose H = J + i*Y from the scalar
-    ! besselj_positive_args / bessely_positive_args. The hankel_debye helper
-    ! in bessels_debye is faster for x > ~nu but currently produces wrong
-    ! complex values (port bug, see todo/07-nonintegerNU-bugs.md). The
-    ! compose path is correct for integer nu; non-integer nu inherits the
-    ! latent bugs in bessely_positive_args.
+    ! For x in the Hankel-Debye regime (x > ~nu) the closed-form Debye expansion is faster
+    ! than computing J and Y separately.  Otherwise compose H = J + i*Y.
     !
     ! Negative-nu reflection: H^{(1)}_{-nu}(x) = exp(+i*pi*nu) * H^{(1)}_{nu}(x),
     !                        H^{(2)}_{-nu}(x) = exp(-i*pi*nu) * H^{(2)}_{nu}(x).
@@ -269,11 +265,18 @@ module bessels
 
        anu = abs(nu)
 
-       J = besselj_positive_args(anu, x)
-       Y = bessely_positive_args(anu, x)
-       H = cmplx(J, Y, BK)
+       if (hankel_debye_cutoff(anu, x)) then
+          H = hankel_debye(anu, x)
+       else
+          J = besselj_positive_args(anu, x)
+          Y = bessely_positive_args(anu, x)
+          H = cmplx(J, Y, BK)
+       endif
 
-       ! Apply negative-nu reflection before optionally conjugating for k=2
+       ! H is now H^{(1)}_{anu}(x).  Conjugate first to get H^{(k)}_{anu}(x),
+       ! then apply the negative-nu reflection on the conjugated value.
+       if (k == 2) H = conjg(H)
+
        if (nu < ZERO) then
           if (k == 1) then
              H = H * exp(cmplx(ZERO,  PI*anu, BK))
@@ -282,11 +285,7 @@ module bessels
           endif
        endif
 
-       if (k == 1) then
-          besselh = H
-       else
-          besselh = conjg(H)
-       endif
+       besselh = H
 
     end function besselh
 

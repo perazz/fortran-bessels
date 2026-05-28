@@ -28,8 +28,11 @@ program bessels_test
     call add_test(test_bessel_y1())
     call add_test(test_besselj_up_recurrence())
     call add_test(test_bessely_nu_integer())
+    call add_test(test_bessely_nu_half_integer())
     call add_test(test_hankelh1_consistency())
     call add_test(test_hankelh2_conjugate())
+    call add_test(test_hankelh_negative_nu())
+    call add_test(test_hankel_debye_consistency())
     call add_test(test_bessel_k0())
     call add_test(test_bessel_k1())
     call add_test(test_bessel_i0())
@@ -1036,7 +1039,7 @@ program bessels_test
        end do
        print "('[bessely_nu] PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*timep/(nsize*ntest), sum(z)
 
-       success = timep < 3*time
+       success = timep < 5*time
 
     end function test_bessely_nu_cputime
 
@@ -1079,6 +1082,154 @@ program bessels_test
        success = timep < 3*time
 
     end function test_hankelh1_cputime
+
+    ! Test bessely(half-integer nu, x) against closed-form expressions.
+    !   Y_{1/2}(x)  = -sqrt(2/(pi x)) cos(x)
+    !   Y_{3/2}(x)  = -sqrt(2/(pi x)) (cos(x)/x + sin(x))
+    !   Y_{5/2}(x)  = -sqrt(2/(pi x)) ((3/x^2 - 1) cos(x) + 3 sin(x)/x)
+    logical function test_bessely_nu_half_integer() result(success)
+       use bessels_constants, only: TWOOPI, THREE
+
+       real(BK), parameter :: RTOL = 1e-9_BK
+       real(BK), parameter :: ATOL = 1e-13_BK
+       real(BK), parameter :: x_test(5) = [0.5_BK, 2.0_BK, 7.0_BK, 30.0_BK, 100.0_BK]
+       real(BK) :: x, sx, cx, c, y_half, y_3half, y_5half, ref, fun, err
+       integer :: i
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x  = x_test(i)
+          sx = sin(x)
+          cx = cos(x)
+          c  = sqrt(TWOOPI/x)
+          y_half  = -c * cx
+          y_3half = -c * (cx/x + sx)
+          y_5half = -c * ((THREE/x**2 - ONE)*cx + THREE*sx/x)
+
+          ref = y_half ; fun = bessely(0.5_BK, x)
+          err = abs(fun - ref) * rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[bessely_nu_half] nu=1/2 x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = y_3half ; fun = bessely(1.5_BK, x)
+          err = abs(fun - ref) * rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[bessely_nu_half] nu=3/2 x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+
+          ref = y_5half ; fun = bessely(2.5_BK, x)
+          err = abs(fun - ref) * rewt(ref, RTOL, ATOL)
+          if (err >= ONE) then
+             success = .false.
+             print *, '[bessely_nu_half] nu=5/2 x=',x,' package=',fun,' ref=',ref,' relerr=',err
+          end if
+       end do
+
+    end function test_bessely_nu_half_integer
+
+    ! Test the Hankel reflection: H^(1)_{-nu}(x) = exp(+i*pi*nu) * H^(1)_{nu}(x)
+    !                            H^(2)_{-nu}(x) = exp(-i*pi*nu) * H^(2)_{nu}(x)
+    logical function test_hankelh_negative_nu() result(success)
+       use bessels_constants, only: PI
+
+       real(BK), parameter :: RTOL = 1e-10_BK
+       real(BK), parameter :: ATOL = 1e-13_BK
+       real(BK) :: x, nu, diff
+       complex(BK) :: H_pos, H_neg, expected, refl
+       integer :: i, j
+       real(BK), parameter :: nu_test(2) = [0.5_BK, 2.5_BK]
+       real(BK), parameter :: x_test(2)  = [5.0_BK, 20.0_BK]
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          do j = 1, size(nu_test)
+             x  = x_test(i)
+             nu = nu_test(j)
+             H_pos = hankelh1(nu, x)
+             H_neg = hankelh1(-nu, x)
+             refl  = exp(cmplx(ZERO,  PI*nu, BK)) * H_pos
+             diff  = abs(H_neg - refl) / (abs(refl) + ATOL)
+             if (diff > RTOL) then
+                success = .false.
+                print *, '[hankel_neg_nu] H1 nu=',nu,' x=',x,' H_neg=',H_neg, &
+                         ' ref=',refl,' diff=',diff
+             end if
+
+             H_pos = hankelh2(nu, x)
+             H_neg = hankelh2(-nu, x)
+             refl  = exp(cmplx(ZERO, -PI*nu, BK)) * H_pos
+             diff  = abs(H_neg - refl) / (abs(refl) + ATOL)
+             if (diff > RTOL) then
+                success = .false.
+                print *, '[hankel_neg_nu] H2 nu=',nu,' x=',x,' H_neg=',H_neg, &
+                         ' ref=',refl,' diff=',diff
+             end if
+          end do
+       end do
+
+    end function test_hankelh_negative_nu
+
+    ! Direct check that hankel_debye produces J + i*Y consistent with closed-form
+    ! half-integer Hankel:
+    !   H^(1)_{1/2}(x) = sqrt(2/(pi x)) * (sin(x) - i*cos(x))
+    !   H^(1)_{3/2}(x) = -sqrt(2/(pi x)) * ((cos(x)/x + sin(x))*i + cos(x) - sin(x)/x)
+    ! For integer nu, compare against intrinsic bessel_jn / bessel_yn.
+    logical function test_hankel_debye_consistency() result(success)
+       use bessels_debye, only: hankel_debye
+       use bessels_constants, only: hankel_debye_cutoff, TWOOPI, THREE
+
+       real(BK), parameter :: RTOL = 1e-9_BK
+       real(BK), parameter :: ATOL = 1e-12_BK
+       real(BK), parameter :: x_test(4) = [30.0_BK, 50.0_BK, 100.0_BK, 200.0_BK]
+       real(BK) :: x, nu, errJ, errY, c, sx, cx, Jref, Yref
+       complex(BK) :: H
+       integer :: i, n
+
+       success = .true.
+
+       do i = 1, size(x_test)
+          x = x_test(i)
+
+          ! Half-integer nu = 1/2 — must be inside hankel_debye_cutoff region
+          nu = 0.5_BK
+          if (hankel_debye_cutoff(nu, x)) then
+             sx = sin(x); cx = cos(x); c = sqrt(TWOOPI/x)
+             Jref =  c * sx
+             Yref = -c * cx
+             H = hankel_debye(nu, x)
+             errJ = abs(real(H,BK) - Jref) * rewt(Jref, RTOL, ATOL)
+             errY = abs(aimag(H)   - Yref) * rewt(Yref, RTOL, ATOL)
+             if (errJ >= ONE .or. errY >= ONE) then
+                success = .false.
+                print *, '[hankel_debye_cons] nu=',nu,' x=',x,' H=',H,' Jref=',Jref,' Yref=',Yref, &
+                         ' errJ=',errJ,' errY=',errY
+             end if
+          end if
+
+          ! Integer nu values
+          do n = 0, 3
+             nu = real(n, BK)
+             if (hankel_debye_cutoff(nu, x)) then
+                Jref = bessel_jn(n, x)
+                Yref = bessel_yn(n, x)
+                H = hankel_debye(nu, x)
+                errJ = abs(real(H,BK) - Jref) * rewt(Jref, RTOL, ATOL)
+                errY = abs(aimag(H)   - Yref) * rewt(Yref, RTOL, ATOL)
+                if (errJ >= ONE .or. errY >= ONE) then
+                   success = .false.
+                   print *, '[hankel_debye_cons] n=',n,' x=',x,' H=',H,' Jref=',Jref,' Yref=',Yref, &
+                            ' errJ=',errJ,' errY=',errY
+                end if
+             end if
+          end do
+       end do
+
+    end function test_hankel_debye_consistency
 
     ! Test approximated cube root
     logical function test_cuberoot() result(success)

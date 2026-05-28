@@ -17,6 +17,7 @@
 module bessels
     use bessels_constants
     use bessels_debye
+    use bessels_gamma, only: gamma_BK
 
     implicit none
     private
@@ -26,9 +27,11 @@ module bessels
 
     public :: besseli0,besseli1
     public :: besselj0,besselj1,besseljn
-    public :: bessely0,bessely1
+    public :: bessely0,bessely1,bessely
     public :: besselk0,besselk1
+    public :: besselh,hankelh1,hankelh2
 
+    public :: gamma_BK
 
     public :: cbrt
     public :: ZERO,ONE,THIRD
@@ -214,9 +217,94 @@ module bessels
         endif
     end function besseljn
 
+    ! Bessel function of the second kind of variable real order nu, ``Y_{nu}(x)``.
+    !
+    ! Branch 1: x <  0      -> NaN (Y_nu is real-valued for x > 0)
+    ! Branch 2: x == 0      -> -infinity (matches bessely0/bessely1 at 0)
+    ! Branch 3: nu >= 0     -> delegate to bessely_positive_args
+    ! Branch 4: nu <  0     -> reflection Y_{-nu}(x) = cos(pi*nu)*Y_nu(x) + sin(pi*nu)*J_nu(x)
+    elemental real(BK) function bessely(nu, x)
+       real(BK), intent(in) :: nu, x
+       real(BK) :: anu, Yp, Jp
+
+       if (x < ZERO) then
+          bessely = ieee_value(bessely, ieee_quiet_nan)
+       elseif (x == ZERO) then
+          bessely = ieee_value(bessely, ieee_negative_inf)
+       elseif (nu >= ZERO) then
+          bessely = bessely_positive_args(nu, x)
+       else
+          anu = -nu
+          Yp  = bessely_positive_args(anu, x)
+          Jp  = besselj_positive_args(anu, x)
+          bessely = cos(PI*anu)*Yp + sin(PI*anu)*Jp
+       endif
+
+    end function bessely
+
+    ! Hankel function H^{(k)}_{nu}(x) = J_{nu}(x) + (-1)^{k+1} i*Y_{nu}(x) for k in {1, 2}.
+    ! Real x > 0 only. Returns NaN+NaN*i for x <= 0.
+    !
+    ! Implementation note: we always compose H = J + i*Y from the scalar
+    ! besselj_positive_args / bessely_positive_args. The hankel_debye helper
+    ! in bessels_debye is faster for x > ~nu but currently produces wrong
+    ! complex values (port bug, see todo/07-nonintegerNU-bugs.md). The
+    ! compose path is correct for integer nu; non-integer nu inherits the
+    ! latent bugs in bessely_positive_args.
+    !
+    ! Negative-nu reflection: H^{(1)}_{-nu}(x) = exp(+i*pi*nu) * H^{(1)}_{nu}(x),
+    !                        H^{(2)}_{-nu}(x) = exp(-i*pi*nu) * H^{(2)}_{nu}(x).
+    elemental complex(BK) function besselh(nu, k, x)
+       real(BK), intent(in) :: nu, x
+       integer,  intent(in) :: k
+
+       real(BK)    :: J, Y, anu
+       complex(BK) :: H
+
+       if (x <= ZERO) then
+          besselh = cmplx(ieee_value(ZERO, ieee_quiet_nan), &
+                          ieee_value(ZERO, ieee_quiet_nan), BK)
+          return
+       endif
+
+       anu = abs(nu)
+
+       J = besselj_positive_args(anu, x)
+       Y = bessely_positive_args(anu, x)
+       H = cmplx(J, Y, BK)
+
+       ! Apply negative-nu reflection before optionally conjugating for k=2
+       if (nu < ZERO) then
+          if (k == 1) then
+             H = H * exp(cmplx(ZERO,  PI*anu, BK))
+          else
+             H = H * exp(cmplx(ZERO, -PI*anu, BK))
+          endif
+       endif
+
+       if (k == 1) then
+          besselh = H
+       else
+          besselh = conjg(H)
+       endif
+
+    end function besselh
+
+    ! Hankel function of the first kind, H^{(1)}_{nu}(x) = J_{nu}(x) + i*Y_{nu}(x).
+    elemental complex(BK) function hankelh1(nu, x)
+       real(BK), intent(in) :: nu, x
+       hankelh1 = besselh(nu, 1, x)
+    end function hankelh1
+
+    ! Hankel function of the second kind, H^{(2)}_{nu}(x) = J_{nu}(x) - i*Y_{nu}(x).
+    elemental complex(BK) function hankelh2(nu, x)
+       real(BK), intent(in) :: nu, x
+       hankelh2 = besselh(nu, 2, x)
+    end function hankelh2
+
     ! Recurrence J_{nu}(x)
 
-    ! At this point we must fill the region when x Å v with recurrence
+    ! At this point we must fill the region when x ï¿½ v with recurrence
     ! Backward recurrence is always stable and forward recurrence is stable when x > nu
     ! However, we only use backward recurrence by shifting the order up and using `besseljy_debye` to
     ! generate start values. Both `besseljy_debye` and `hankel_debye` get more accurate for large orders,

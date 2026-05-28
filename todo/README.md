@@ -23,6 +23,7 @@ This means **Tier 0** below is mostly plumbing.
 | 3  | [04-besseli-variable-order.md](04-besseli-variable-order.md) | medium | Depends on K_ν. Power series + Debye + large-x asymptotic + scaled variant `besselix`. |
 | 4  | [05-spherical-bessels.md](05-spherical-bessels.md) | medium | Needs Tier 0–3 done. Mix of integer-order fast paths (sin/cos/sinh/cosh closed forms) and half-integer fallback. |
 | 5  | [06-housekeeping.md](06-housekeeping.md) | small | Four in-code TODOs in `bessely0`/`bessely1`, suspected bug in `besselj_up_recurrence`, `Uk_poly_Hankel` "why p*im?" comment. |
+| 6  | [07-nonintegerNU-bugs.md](07-nonintegerNU-bugs.md) | medium | Three port bugs (`bessely_power_series` arg swap, `bessely_chebyshev` mapping, `hankel_debye` complex output) surfaced while implementing plan 01. `bessely(nu, x)` and `besselh` ship correct for integer ν only until this lands. |
 
 ## Out of scope (matching Bessels.jl's public API)
 

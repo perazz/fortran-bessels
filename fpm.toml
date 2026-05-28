@@ -11,6 +11,7 @@ keywords    = ["math","bessel","bessel functions","special functions"]
 auto-executables = false
 auto-examples    = false
 auto-tests       = true
+module-naming    = "bessels"
 
 [library]
 source-dir  = "src"

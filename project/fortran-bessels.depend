@@ -1,11 +1,11 @@
 # depslib dependency file v1.0
-1673087681 source:/Users/federico/code/fortran-bessels/src/bessels_constants.f90
+1678906450 source:/Users/federico/code/fortran-bessels/src/bessels_constants.f90
 
-1673034672 source:/Users/federico/code/fortran-bessels/src/bessels.f90
+1678906673 source:/Users/federico/code/fortran-bessels/src/bessels.f90
 
-1669667935 source:/Users/federico/code/fortran-bessels/test/bessels_test.f90
+1673383184 source:/Users/federico/code/fortran-bessels/test/bessels_test.f90
 
-1673034742 source:/Users/federico/code/fortran-bessels/src/bessels_debye.f90
+1678903603 source:/Users/federico/code/fortran-bessels/src/bessels_debye.f90
 
 1666629893 source:i:\fortran-bessels\src\bessels_constants.f90
 
@@ -17,9 +17,9 @@
 
 1667721895 source:/Users/federico/code/fortran-bessels/src/legacy/rkbesl.f
 
-1667743469 source:/Users/federico/code/fortran-bessels/src/3rd_party/ribesl.f
+1667743469 source:/Users/federico/code/fortran-bessels/test/3rd_party/ribesl.f90
 
-1667721895 source:/Users/federico/code/fortran-bessels/src/3rd_party/rkbesl.f
+1667721895 source:/Users/federico/code/fortran-bessels/test/3rd_party/rkbesl.f90
 
 1669922491 source:/Users/federico/code/fortran-bessels/src/bessels_gamma.f90
 

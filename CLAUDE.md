@@ -17,7 +17,7 @@ An open-source, MIT-licensed modern Fortran port of [Bessels.jl](https://github.
 - **Public GitHub repo** at `perazz/fortran-bessels`, MIT license. Contributions welcome via PR.
 - **Commits and PRs** on the owner's account — no `Co-Authored-By` lines, no "Generated with Claude Code" attributions.
 - **No version bumps per PR.** Release tags only.
-- **Pure Fortran only.** The `src/3rd_party/` `.f` files (netlib `ribesl`, `rkbesl`) are *test-time reference implementations* only — never call them from `src/bessels*.f90`.
+- **Pure Fortran only.** The `test/3rd_party/` `.f90` files (netlib `ribesl`, `rkbesl`) are *test-time reference implementations* only — never call them from `src/bessels*.f90`.
 
 ## Building & Testing
 
@@ -32,9 +32,10 @@ Manual gfortran build (matches the README recipe):
 
 ```bash
 gfortran -ffree-line-length-none -O3 -march=native -ffast-math \
-    src/3rd_party/ribesl.f src/3rd_party/rkbesl.f \
     src/bessels_constants.f90 src/bessels_gamma.f90 src/bessels_debye.f90 \
-    src/bessels.f90 test/bessels_test.f90 -o bessels_test
+    src/bessels.f90 \
+    test/3rd_party/ribesl.f90 test/3rd_party/rkbesl.f90 \
+    test/bessels_test.f90 -o bessels_test
 ./bessels_test
 ```
 
@@ -52,9 +53,11 @@ src/
   bessels_gamma.f90       — gamma helpers used by Bessel branches
   bessels_debye.f90       — Debye / uniform asymptotic expansions for large nu
   bessels.f90             — public API: besselj0/j1/jn, bessely0/y1, besseli0/i1, besselk0/k1
-  3rd_party/              — netlib reference (test only, do not call from src)
 test/
   bessels_test.f90        — correctness + timing harness
+  3rd_party/              — netlib reference (test only, do not call from src)
+                            * ribesl.f90 → module bessels_ribesl
+                            * rkbesl.f90 → module bessels_rkbesl
 ```
 
 One module per file, each with the project's banner header:

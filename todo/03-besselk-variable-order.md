@@ -55,7 +55,7 @@ Four branches by `(nu, x)`:
 
 ## Tests
 
-- `test_besselk_nu` — values at `(nu, x)` grid `nu ∈ {0.0, 0.5, 1.0, 2.5, 5.0, 30.0, 100.0}`, `x ∈ {0.01, 0.1, 1.0, 5.0, 20.0, 100.0, 500.0}`. Compare against `besselk0`/`besselk1` for `nu=0/1`, against netlib `rkbesl` (already in [src/3rd_party/](../src/3rd_party/)) for integer `nu`, and against tabulated reference for non-integer.
+- `test_besselk_nu` — values at `(nu, x)` grid `nu ∈ {0.0, 0.5, 1.0, 2.5, 5.0, 30.0, 100.0}`, `x ∈ {0.01, 0.1, 1.0, 5.0, 20.0, 100.0, 500.0}`. Compare against `besselk0`/`besselk1` for `nu=0/1`, against netlib `rkbesl` (already in [test/3rd_party/](../test/3rd_party/)) for integer `nu`, and against tabulated reference for non-integer.
 - `test_besselk_temme` — focused on `x < 2`, `nu ∈ {0.1, 0.4, 0.99, 1.01, 2.0001}` — verify the near-integer limit doesn't blow up.
 - `test_besselk_debye` — `nu = 100`, `x ∈ {5, 50}` — verify the Debye branch is active and accurate.
 - `test_besselkx_overflow` — `besselkx(0.0, 700.0)` should be finite (~`√(π/1400)`) while `besselk(0.0, 700.0)` underflows to zero.

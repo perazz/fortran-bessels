@@ -10,7 +10,7 @@
 !
 !  MIT License
 !
-!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2022-2026 Federico Perini
 !  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
 !
 !  ************************************************************************************************************
@@ -516,7 +516,7 @@ module bessels
     elemental real(BK) function bessely_positive_args(nu, x)
        real(BK), intent(in) :: nu, x
 
-       real(BK) :: dummy,YJ(2)
+       real(BK) :: dummy,Yv,Jv
 
        if (x==ZERO) then
 
@@ -545,8 +545,8 @@ module bessels
        elseif (bessely_series_cutoff(nu, x)) then
 
           ! use power series for small x and for when nu > x
-          YJ = bessely_power_series(nu, x)
-          bessely_positive_args = YJ(1)
+          call bessely_power_series(nu, x, Yv, Jv)
+          bessely_positive_args = Yv
 
        else
 

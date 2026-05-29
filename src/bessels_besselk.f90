@@ -9,7 +9,7 @@
 !                              Modified Bessel function K_nu(x), variable order
 !
 !  MIT License
-!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2022-2026 Federico Perini
 !  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
 !
 !  Port of Bessels.jl/src/BesselFunctions/besselk.jl.  Three branches:
@@ -402,6 +402,9 @@ module bessels_besselk
         real(BK), intent(out) :: K_v, K_vp1
 
         integer, parameter :: MaxIter = 500
+        ! gamma(1+v) ≈ Taylor around v=0 with given coefficients
+        real(BK), parameter :: GAMMA_1PV_TAYLOR(4) = &
+            [ONE, -0.5772156649015329_BK, 0.9890559953279725_BK, -0.23263776388631713_BK]
         real(BK) :: z, zz, fk, zv, pk, qk, ck, out_v, out_vp1, term_v, term_vp1
         real(BK) :: k_real
         integer :: k
@@ -411,11 +414,8 @@ module bessels_besselk
         fk = f0_local_expansion_v0(v, x)
         zv = z**v
 
-        ! gamma(1+v) ≈ Taylor around v=0 with given coefficients
-        pk = evalpoly(4, v,  [ONE, -0.5772156649015329_BK, 0.9890559953279725_BK, -0.23263776388631713_BK]) &
-             / (TWO*zv)
-        qk = zv * evalpoly(4, -v, [ONE, -0.5772156649015329_BK, 0.9890559953279725_BK, -0.23263776388631713_BK]) &
-             * HALF
+        pk = evalpoly(4,  v, GAMMA_1PV_TAYLOR) / (TWO*zv)
+        qk = evalpoly(4, -v, GAMMA_1PV_TAYLOR) * zv * HALF
         ck = ONE
         out_v   = ZERO
         out_vp1 = ZERO
@@ -439,15 +439,23 @@ module bessels_besselk
 
     elemental real(BK) function f0_local_expansion_v0(v, x) result(f0)
         real(BK), intent(in) :: v, x
+        real(BK), parameter :: SP_COEF(4) = &
+            [ONE, 1.6449340668482264_BK, 1.8940656589944918_BK, 1.9711021825948702_BK]
+        real(BK), parameter :: G1_COEF(3) = &
+            [-0.5772156649015329_BK, 0.04200263503409518_BK, 0.042197734555544306_BK]
+        real(BK), parameter :: G2_COEF(3) = &
+            [ONE, -0.6558780715202539_BK, 0.16653861138229145_BK]
+        real(BK), parameter :: SH_COEF(5) = &
+            [ONE, 0.16666666666666666_BK, 0.008333333333333333_BK, &
+             0.0001984126984126984_BK, 2.7557319223985893e-6_BK]
         real(BK) :: l2dx, mu, vv, sp, g1, g2, sh
         l2dx = log(TWO) - log(x)
         mu   = v*l2dx
         vv   = v*v
-        sp = evalpoly(4, vv, [ONE, 1.6449340668482264_BK, 1.8940656589944918_BK, 1.9711021825948702_BK])
-        g1 = evalpoly(3, vv, [-0.5772156649015329_BK, 0.04200263503409518_BK, 0.042197734555544306_BK])
-        g2 = evalpoly(3, vv, [ONE, -0.6558780715202539_BK, 0.16653861138229145_BK])
-        sh = evalpoly(5, mu*mu, [ONE, 0.16666666666666666_BK, 0.008333333333333333_BK, &
-                                  0.0001984126984126984_BK, 2.7557319223985893e-6_BK])
+        sp = evalpoly(4, vv,    SP_COEF)
+        g1 = evalpoly(3, vv,    G1_COEF)
+        g2 = evalpoly(3, vv,    G2_COEF)
+        sh = evalpoly(5, mu*mu, SH_COEF)
         f0 = sp * (g1 * cosh(mu) + g2 * sh * l2dx)
     end function f0_local_expansion_v0
 

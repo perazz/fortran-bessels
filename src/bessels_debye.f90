@@ -10,7 +10,7 @@
 !
 !  MIT License
 !
-!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2022-2026 Federico Perini
 !  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
 !
 !  This file contains the debye asymptotic asymptotic expansions for large orders.
@@ -291,7 +291,7 @@ module bessels_debye
     !
     ! Argument convention mirrors Uk_poly_Hankel: pass `p` (real, = nu/vs), `v = nu`,
     ! `p2_neg = -p^2` (negative), and `x`.
-    pure function Uk_poly_Hankel_complex(p, v, p2_neg, x) result(b)
+    elemental function Uk_poly_Hankel_complex(p, v, p2_neg, x) result(b)
         real(BK), intent(in) :: p, v, p2_neg, x
         complex(BK) :: b
 

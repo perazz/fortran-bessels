@@ -9,7 +9,7 @@
 !                              Modified Bessel function I_nu(x), variable order
 !
 !  MIT License
-!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2022-2026 Federico Perini
 !  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
 !
 !  Port of Bessels.jl/src/BesselFunctions/besseli.jl.

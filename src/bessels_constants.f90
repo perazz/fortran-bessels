@@ -10,7 +10,7 @@
 !
 !  MIT License
 !
-!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2022-2026 Federico Perini
 !  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
 !
 !  ************************************************************************************************************
@@ -759,10 +759,10 @@ module bessels_constants
 
     ! Computes ``Y_{nu}(x)`` using the power series when nu is not an integer.
     ! In general, this is most accurate for small arguments and when nu > x.
-    ! Outpus both (Y_{nu}(x), J_{nu}(x)).
-    pure function bessely_power_series(nu, x) result(YJ)
-       real(BK), intent(in) :: nu, x
-       real(BK) :: YJ(2)
+    ! Outputs both Y_{nu}(x) and J_{nu}(x).
+    elemental subroutine bessely_power_series(nu, x, Y, J)
+       real(BK), intent(in)  :: nu, x
+       real(BK), intent(out) :: Y, J
 
        real(real64) :: nu64,x64,out64,out264,a,b,t2,xo2,rnit,spi,cpi
        integer, parameter :: maxit = 3000
@@ -786,7 +786,8 @@ module bessels_constants
         ! check for underflow and return limit for small arguments
         if (abs(a)<tiny(0.0_real64)) then
 
-           YJ = [ieee_value(ZERO,ieee_negative_inf),real(a,BK)]
+           Y = ieee_value(ZERO,ieee_negative_inf)
+           J = real(a,BK)
 
         else
 
@@ -810,11 +811,12 @@ module bessels_constants
            spi = sin(nu64*PI64)
            cpi = cos(nu64*PI64)
 
-           YJ = real([(out64*cpi-out264)/spi,out64],BK)
+           Y = real((out64*cpi-out264)/spi,BK)
+           J = real(out64,BK)
 
         end if
 
-    end function bessely_power_series
+    end subroutine bessely_power_series
 
     ! backward recurrence relation for besselj and bessely
     ! outputs both (bessel(x, nu_end), bessel(x, nu_end-1)

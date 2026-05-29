@@ -324,7 +324,14 @@ module bessels
 
        anu = abs(nu)
 
-       if (hankel_debye_cutoff(anu, x)) then
+       ! Fast paths for the two most common orders: direct calls to the optimized
+       ! scalar j0/j1/y0/y1 are noticeably cheaper than routing nu = 0 / nu = 1
+       ! through hankel_debye (complex exp + complex polynomial reduction).
+       if (anu == ZERO) then
+          H = cmplx(besselj0(x), bessely0(x), BK)
+       elseif (anu == ONE) then
+          H = cmplx(besselj1(x), bessely1(x), BK)
+       elseif (hankel_debye_cutoff(anu, x)) then
           H = hankel_debye(anu, x)
        else
           J = besselj_positive_args(anu, x)

@@ -1099,7 +1099,8 @@ program bessels_test
        end do
        print "('[hankelh1]  PACKAGE   time used: ',f9.4,' ns/eval, sum(z)=',g0)", 1e9*timep/(nsize*ntest), sum(z)
 
-       success = timep < 3*time
+       ! NaN check: any NaN in packge would propagate to sum(z) so verify it is finite.
+       success = timep < 3*time .and. sum(z) == sum(z) .and. abs(sum(z)) < huge(ONE)
 
     end function test_hankelh1_cputime
 
@@ -1224,7 +1225,7 @@ program bessels_test
              H = hankel_debye(nu, x)
              errJ = abs(real(H,BK) - Jref) * rewt(Jref, RTOL, ATOL)
              errY = abs(aimag(H)   - Yref) * rewt(Yref, RTOL, ATOL)
-             if (errJ >= ONE .or. errY >= ONE) then
+             if (errJ >= ONE .or. errY >= ONE .or. errJ /= errJ .or. errY /= errY) then
                 success = .false.
                 print *, '[hankel_debye_cons] nu=',nu,' x=',x,' H=',H,' Jref=',Jref,' Yref=',Yref, &
                          ' errJ=',errJ,' errY=',errY
@@ -1240,7 +1241,7 @@ program bessels_test
                 H = hankel_debye(nu, x)
                 errJ = abs(real(H,BK) - Jref) * rewt(Jref, RTOL, ATOL)
                 errY = abs(aimag(H)   - Yref) * rewt(Yref, RTOL, ATOL)
-                if (errJ >= ONE .or. errY >= ONE) then
+                if (errJ >= ONE .or. errY >= ONE .or. errJ /= errJ .or. errY /= errY) then
                    success = .false.
                    print *, '[hankel_debye_cons] n=',n,' x=',x,' H=',H,' Jref=',Jref,' Yref=',Yref, &
                             ' errJ=',errJ,' errY=',errY

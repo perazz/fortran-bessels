@@ -10,7 +10,7 @@
 !
 !  MIT License
 !
-!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2022-2026 Federico Perini
 !  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
 !
 !  ************************************************************************************************************
@@ -49,6 +49,7 @@ module bessels_constants
 
     real(BK), parameter :: THPIO4   = 2.35619449019234492885_BK
     real(BK), parameter :: SQ2PI    = 2.5066282746310007_BK
+    real(BK), parameter :: PIPOW3O2 = PI * sqrt(PI)     ! pi^(3/2)
 
     complex(BK), parameter :: IM    = (ZERO,ONE) ! The imaginary unit
 
@@ -758,10 +759,10 @@ module bessels_constants
 
     ! Computes ``Y_{nu}(x)`` using the power series when nu is not an integer.
     ! In general, this is most accurate for small arguments and when nu > x.
-    ! Outpus both (Y_{nu}(x), J_{nu}(x)).
-    pure function bessely_power_series(x, nu) result(YJ)
-       real(BK), intent(in) :: x, nu
-       real(BK) :: YJ(2)
+    ! Outputs both Y_{nu}(x) and J_{nu}(x).
+    elemental subroutine bessely_power_series(nu, x, Y, J)
+       real(BK), intent(in)  :: nu, x
+       real(BK), intent(out) :: Y, J
 
        real(real64) :: nu64,x64,out64,out264,a,b,t2,xo2,rnit,spi,cpi
        integer, parameter :: maxit = 3000
@@ -785,7 +786,8 @@ module bessels_constants
         ! check for underflow and return limit for small arguments
         if (abs(a)<tiny(0.0_real64)) then
 
-           YJ = [ieee_value(ZERO,ieee_negative_inf),real(a,BK)]
+           Y = ieee_value(ZERO,ieee_negative_inf)
+           J = real(a,BK)
 
         else
 
@@ -809,11 +811,12 @@ module bessels_constants
            spi = sin(nu64*PI64)
            cpi = cos(nu64*PI64)
 
-           YJ = real([(out64*cpi-out264)/spi,out64],BK)
+           Y = real((out64*cpi-out264)/spi,BK)
+           J = real(out64,BK)
 
         end if
 
-    end function bessely_power_series
+    end subroutine bessely_power_series
 
     ! backward recurrence relation for besselj and bessely
     ! outputs both (bessel(x, nu_end), bessel(x, nu_end-1)
@@ -965,6 +968,28 @@ module bessels_constants
        y = ((p(4)*x+p(3))*x+p(2))*x+p(1)
     end function evalpoly4
 
+    ! Use the Clenshaw algorithm to recursively evaluate a linear combination of Chebyshev polynomials.
+    pure real(BK) function clenshaw_chebyshev(x, c) result(cheb)
+       real(BK), intent(in) :: x, c(:)
+
+       real(BK) :: x2,c0,c1,a,b
+       integer  :: lc,i
+
+       lc = size(c)
+       x2 = 2*x
+
+       c0 = c(lc-1)
+       c1 = c(lc)
+       do i=lc-2,1,-1
+          a = c(i) - c1
+          b = c0 + c1 * x2
+          c0 = a
+          c1 = b
+       end do
+
+       cheb = c0 + c1 * x
+    end function clenshaw_chebyshev
+
     elemental real(BK) function muladd(A,x,y) result(axpy)
        real(BK), intent(in) :: A,x,y
        axpy = A*x+y
@@ -972,7 +997,7 @@ module bessels_constants
 
     elemental logical function isinteger(x)
        real(BK), intent(in) :: x
-       isinteger = (x-nint(x))<epsilon(ZERO)
+       isinteger = abs(x-nint(x))<epsilon(ZERO)
     end function isinteger
 
 end module bessels_constants

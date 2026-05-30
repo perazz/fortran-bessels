@@ -10,7 +10,7 @@
 !
 !  MIT License
 !
-!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2022-2026 Federico Perini
 !  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
 !
 !  ************************************************************************************************************
@@ -18,6 +18,10 @@ module bessels
     use bessels_constants
     use bessels_debye
     use bessels_gamma, only: gamma_BK
+    use bessels_airy,  only: airyai,airyaiprime,airybi,airybiprime, &
+                              airyaix,airyaiprimex,airybix,airybiprimex
+    use bessels_besselk, only: besselk, besselkx
+    use bessels_besseli, only: besseli, besselix
 
     implicit none
     private
@@ -25,11 +29,17 @@ module bessels
     ! Todo: make one module per real precision
     public :: BK,BSIZE
 
-    public :: besseli0,besseli1
-    public :: besselj0,besselj1,besseljn
+    public :: besseli0,besseli1,besseli,besselix
+    public :: besselj0,besselj1,besseljn,besselj
     public :: bessely0,bessely1,bessely
-    public :: besselk0,besselk1
+    public :: besselk0,besselk1,besselk,besselkx
     public :: besselh,hankelh1,hankelh2
+
+    public :: sphericalbesselj, sphericalbessely
+    public :: sphericalbesseli, sphericalbesselk
+
+    public :: airyai,airyaiprime,airybi,airybiprime
+    public :: airyaix,airyaiprimex,airybix,airybiprimex
 
     public :: gamma_BK
 
@@ -217,6 +227,55 @@ module bessels
         endif
     end function besseljn
 
+    ! Bessel function of the first kind of variable real order nu, ``J_{nu}(x)``.
+    !
+    ! Branch 1: x < 0
+    !   integer nu: J_n(-x) = (-1)^n J_n(x)
+    !   real    nu: complex-valued (return NaN)
+    ! Branch 2: nu >= 0  -> delegate to besselj_positive_args
+    ! Branch 3: nu <  0  -> reflection J_{-nu}(x) = cos(pi nu) J_nu(x) - sin(pi nu) Y_nu(x)
+    elemental real(BK) function besselj(nu, x)
+       real(BK), intent(in) :: nu, x
+       real(BK) :: anu, ax, Jp, Yp
+       integer  :: n
+
+       anu = abs(nu)
+       ax  = abs(x)
+
+       if (x == ZERO) then
+          ! J_0(0) = 1, J_{nu>0}(0) = 0
+          if (nu == ZERO) then
+             besselj = ONE
+          else
+             besselj = ZERO
+          end if
+          return
+       end if
+
+       if (nu >= ZERO) then
+          Jp = besselj_positive_args(anu, ax)
+       else
+          Jp = cos(PI*anu)*besselj_positive_args(anu, ax) &
+             - sin(PI*anu)*bessely_positive_args(anu, ax)
+       endif
+
+       if (x < ZERO) then
+          if (isinteger(anu)) then
+             n = nint(anu)
+             if (mod(n, 2) == 0) then
+                besselj = Jp
+             else
+                besselj = -Jp
+             end if
+          else
+             besselj = ieee_value(besselj, ieee_quiet_nan)
+          end if
+       else
+          besselj = Jp
+       endif
+
+    end function besselj
+
     ! Bessel function of the second kind of variable real order nu, ``Y_{nu}(x)``.
     !
     ! Branch 1: x <  0      -> NaN (Y_nu is real-valued for x > 0)
@@ -245,12 +304,8 @@ module bessels
     ! Hankel function H^{(k)}_{nu}(x) = J_{nu}(x) + (-1)^{k+1} i*Y_{nu}(x) for k in {1, 2}.
     ! Real x > 0 only. Returns NaN+NaN*i for x <= 0.
     !
-    ! Implementation note: we always compose H = J + i*Y from the scalar
-    ! besselj_positive_args / bessely_positive_args. The hankel_debye helper
-    ! in bessels_debye is faster for x > ~nu but currently produces wrong
-    ! complex values (port bug, see todo/07-nonintegerNU-bugs.md). The
-    ! compose path is correct for integer nu; non-integer nu inherits the
-    ! latent bugs in bessely_positive_args.
+    ! For x in the Hankel-Debye regime (x > ~nu) the closed-form Debye expansion is faster
+    ! than computing J and Y separately.  Otherwise compose H = J + i*Y.
     !
     ! Negative-nu reflection: H^{(1)}_{-nu}(x) = exp(+i*pi*nu) * H^{(1)}_{nu}(x),
     !                        H^{(2)}_{-nu}(x) = exp(-i*pi*nu) * H^{(2)}_{nu}(x).
@@ -269,11 +324,25 @@ module bessels
 
        anu = abs(nu)
 
-       J = besselj_positive_args(anu, x)
-       Y = bessely_positive_args(anu, x)
-       H = cmplx(J, Y, BK)
+       ! Fast paths for the two most common orders: direct calls to the optimized
+       ! scalar j0/j1/y0/y1 are noticeably cheaper than routing nu = 0 / nu = 1
+       ! through hankel_debye (complex exp + complex polynomial reduction).
+       if (anu == ZERO) then
+          H = cmplx(besselj0(x), bessely0(x), BK)
+       elseif (anu == ONE) then
+          H = cmplx(besselj1(x), bessely1(x), BK)
+       elseif (hankel_debye_cutoff(anu, x)) then
+          H = hankel_debye(anu, x)
+       else
+          J = besselj_positive_args(anu, x)
+          Y = bessely_positive_args(anu, x)
+          H = cmplx(J, Y, BK)
+       endif
 
-       ! Apply negative-nu reflection before optionally conjugating for k=2
+       ! H is now H^{(1)}_{anu}(x).  Conjugate first to get H^{(k)}_{anu}(x),
+       ! then apply the negative-nu reflection on the conjugated value.
+       if (k == 2) H = conjg(H)
+
        if (nu < ZERO) then
           if (k == 1) then
              H = H * exp(cmplx(ZERO,  PI*anu, BK))
@@ -282,11 +351,7 @@ module bessels
           endif
        endif
 
-       if (k == 1) then
-          besselh = H
-       else
-          besselh = conjg(H)
-       endif
+       besselh = H
 
     end function besselh
 
@@ -452,35 +517,13 @@ module bessels
 
      end function bessely_chebyshev_low_orders
 
-     ! use the Clenshaw algorithm to recursively evaluate a linear combination of Chebyshev polynomials
-     pure real(BK) function clenshaw_chebyshev(x, c) result(cheb)
-        real(BK), intent(in) :: x, c(:)
-
-        real(BK) :: x2,c0,c1,a,b
-        integer  :: lc,i
-
-        lc = size(c)
-        x2 = 2*x
-
-        c0 = c(lc-1)
-        c1 = c(lc)
-        do i=lc-2,1,-1
-           a = c(i) - c1
-           b = c0 + c1 * x2
-           c0 = a
-           c1 = b
-        end do
-
-        cheb = c0 + c1 * x
-     end function clenshaw_chebyshev
-
     ! Bessel function of the second kind of order nu, ``Y_{nu}(x)``.
     ! nu and x must be real and nu and x must be positive.
     ! No checks on arguments are performed and should only be called if certain nu, x >= 0.
     elemental real(BK) function bessely_positive_args(nu, x)
        real(BK), intent(in) :: nu, x
 
-       real(BK) :: dummy,YJ(2)
+       real(BK) :: dummy,Yv,Jv
 
        if (x==ZERO) then
 
@@ -509,8 +552,8 @@ module bessels
        elseif (bessely_series_cutoff(nu, x)) then
 
           ! use power series for small x and for when nu > x
-          YJ = bessely_power_series(nu, x)
-          bessely_positive_args = YJ(1)
+          call bessely_power_series(nu, x, Yv, Jv)
+          bessely_positive_args = Yv
 
        else
 
@@ -845,6 +888,196 @@ module bessels
        besseli1 = sign(ONE,x)*z
 
    end function besseli1
+
+    ! ================================================================================================
+    ! Spherical Bessel functions  j_n / y_n / i_n / k_n
+    ! j_n(x) = sqrt(pi/(2x)) * J_{n+1/2}(x)         (= sin(x)/x for n=0)
+    ! y_n(x) = sqrt(pi/(2x)) * Y_{n+1/2}(x)         (= -cos(x)/x for n=0)
+    ! i_n(x) = sqrt(pi/(2x)) * I_{n+1/2}(x)         (= sinh(x)/x for n=0)
+    ! k_n(x) = sqrt(pi/(2x)) * K_{n+1/2}(x)         (= e^{-x}/x   for n=0)
+    ! ================================================================================================
+
+    ! Public spherical Bessel functions of the first kind, j_nu(x).
+    elemental real(BK) function sphericalbesselj(nu, x) result(y)
+        real(BK), intent(in) :: nu, x
+
+        if (x /= x) then; y = x; return; end if
+        if (x < ZERO)  then; y = ieee_value(y, ieee_quiet_nan); return; end if
+        if (x > huge(x)) then; y = ZERO; return; end if
+
+        if (isinteger(nu) .and. nu >= ZERO .and. nu < 250.0_BK) then
+            y = sphericalbesselj_int(nint(nu), x)
+        else
+            y = sphericalbesselj_generic(nu, x)
+        end if
+    end function sphericalbesselj
+
+    elemental real(BK) function sphericalbessely(nu, x) result(y)
+        real(BK), intent(in) :: nu, x
+
+        if (x /= x) then; y = x; return; end if
+        if (x < ZERO)  then; y = ieee_value(y, ieee_quiet_nan); return; end if
+        if (x > huge(x)) then; y = ZERO; return; end if
+        if (x == ZERO) then; y = ieee_value(y, ieee_negative_inf); return; end if
+
+        if (isinteger(nu) .and. nu >= ZERO .and. nu < 250.0_BK) then
+            y = sphericalbessely_int(nint(nu), x)
+        else
+            y = sphericalbessely_generic(nu, x)
+        end if
+    end function sphericalbessely
+
+    elemental real(BK) function sphericalbesseli(nu, x) result(y)
+        real(BK), intent(in) :: nu, x
+
+        if (x /= x) then; y = x; return; end if
+        if (x < ZERO)  then; y = ieee_value(y, ieee_quiet_nan); return; end if
+        if (x > huge(x)) then; y = x; return; end if
+        if (x == ZERO) then
+            if (nu == ZERO) then
+                y = ONE
+            else
+                y = ZERO
+            end if
+            return
+        end if
+
+        if (isinteger(nu) .and. nu >= ZERO .and. nu < 3.0_BK) then
+            y = sphericalbesseli_low(nint(nu), x)
+        else
+            y = SQPIO2 * besseli(nu + HALF, x) / sqrt(x)
+        end if
+    end function sphericalbesseli
+
+    elemental real(BK) function sphericalbesselk(nu, x) result(y)
+        real(BK), intent(in) :: nu, x
+        real(BK) :: nu_eff
+
+        if (x /= x) then; y = x; return; end if
+        if (x < ZERO)  then; y = ieee_value(y, ieee_quiet_nan); return; end if
+        if (x > huge(x)) then; y = ZERO; return; end if
+
+        ! k_{-n}(x) = k_{n-1}(x) for integer n (symmetry described in DLMF 10.47.10)
+        nu_eff = nu
+        if (isinteger(nu) .and. nu < ZERO) nu_eff = -ONE - nu
+
+        if (isinteger(nu_eff) .and. nu_eff >= ZERO .and. nu_eff < 41.5_BK) then
+            y = sphericalbesselk_int(nint(nu_eff), x)
+        else
+            y = besselk(nu_eff + HALF, x) / (SQPIO2 * sqrt(x))
+        end if
+    end function sphericalbesselk
+
+    ! ------------------------------------------------------------------------------------------------
+    ! Integer-n fast paths
+    ! ------------------------------------------------------------------------------------------------
+
+    ! j_n forward recurrence from j_0 = sin(x)/x, j_1 = sin(x)/x^2 - cos(x)/x.
+    ! Stable when x >= n; for x < n with n < 60 we fall through to the generic half-integer call,
+    ! which routes to besselj_positive_args.
+    elemental real(BK) function sphericalbesselj_int(n, x) result(y)
+        integer,  intent(in) :: n
+        real(BK), intent(in) :: x
+        real(BK) :: xinv, s, c, sJ0, sJ1, sJ2, nu_real
+        integer :: k
+
+        if (n == 0) then; y = sin(x)/x; return; end if
+
+        xinv = ONE/x
+        s = sin(x); c = cos(x)
+        sJ0 = s*xinv
+        sJ1 = (sJ0 - c)*xinv
+        if (n == 1) then; y = sJ1; return; end if
+
+        ! Forward recurrence is stable for x >= n; otherwise use the generic dispatcher.
+        if (x < real(n, BK)) then
+            y = sphericalbesselj_generic(real(n, BK), x)
+            return
+        end if
+
+        nu_real = ONE
+        do k = 1, n - 1
+            sJ2 = ((TWO*nu_real + ONE)*xinv)*sJ1 - sJ0
+            sJ0 = sJ1
+            sJ1 = sJ2
+            nu_real = nu_real + ONE
+        end do
+        y = sJ1
+    end function sphericalbesselj_int
+
+    ! y_n forward recurrence from y_0 = -cos(x)/x, y_1 = -cos(x)/x^2 - sin(x)/x.
+    elemental real(BK) function sphericalbessely_int(n, x) result(y)
+        integer,  intent(in) :: n
+        real(BK), intent(in) :: x
+        real(BK) :: xinv, s, c, sY0, sY1, sY2, nu_real
+        integer :: k
+
+        xinv = ONE/x
+        s = sin(x); c = cos(x)
+        sY0 = -c*xinv
+        sY1 = xinv*(sY0 - s)
+        if (n == 0) then; y = sY0; return; end if
+        if (n == 1) then; y = sY1; return; end if
+
+        nu_real = ONE
+        do k = 1, n - 1
+            sY2 = ((TWO*nu_real + ONE)*xinv)*sY1 - sY0
+            sY0 = sY1
+            sY1 = sY2
+            nu_real = nu_real + ONE
+        end do
+        y = sY1
+    end function sphericalbessely_int
+
+    ! i_n closed forms for n = 0, 1, 2.
+    elemental real(BK) function sphericalbesseli_low(n, x) result(y)
+        integer,  intent(in) :: n
+        real(BK), intent(in) :: x
+        real(BK) :: x2, sx, cx
+
+        sx = sinh(x); cx = cosh(x); x2 = x*x
+        select case (n)
+            case (0); y = sx / x
+            case (1); y = (x*cx - sx) / x2
+            case (2); y = (x2*sx + THREE*(sx - x*cx)) / (x2*x)
+            case default
+                y = SQPIO2 * besseli(real(n, BK) + HALF, x) / sqrt(x)
+        end select
+    end function sphericalbesseli_low
+
+    ! k_n forward recurrence from k_0 = e^{-x}/x, k_1 = (1 + 1/x) * e^{-x}/x.
+    elemental real(BK) function sphericalbesselk_int(n, x) result(y)
+        integer,  intent(in) :: n
+        real(BK), intent(in) :: x
+        real(BK) :: xinv, b0, b1, b2
+        integer :: k
+
+        xinv = ONE/x
+        b0 = exp(-x)*xinv
+        b1 = b0*(x + ONE)*xinv
+        if (n == 0) then; y = b0; return; end if
+        if (n == 1) then; y = b1; return; end if
+
+        do k = 2, n
+            b2 = b0 + (TWO*real(k, BK) - ONE)*b1*xinv
+            b0 = b1
+            b1 = b2
+        end do
+        y = b1
+    end function sphericalbesselk_int
+
+    ! ------------------------------------------------------------------------------------------------
+    ! Generic (non-integer nu) reductions via half-integer Bessels.
+    ! ------------------------------------------------------------------------------------------------
+    elemental real(BK) function sphericalbesselj_generic(nu, x) result(y)
+        real(BK), intent(in) :: nu, x
+        y = SQPIO2 * besselj_positive_args(nu + HALF, x) / sqrt(x)
+    end function sphericalbesselj_generic
+
+    elemental real(BK) function sphericalbessely_generic(nu, x) result(y)
+        real(BK), intent(in) :: nu, x
+        y = SQPIO2 * bessely_positive_args(nu + HALF, x) / sqrt(x)
+    end function sphericalbessely_generic
 
 
 end module bessels

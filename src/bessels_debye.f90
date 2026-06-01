@@ -10,7 +10,7 @@
 !
 !  MIT License
 !
-!  Copyright (c) 2022 Federico Perini
+!  Copyright (c) 2022-2026 Federico Perini
 !  Copyright (c) 2021-2022 Michael Helton, Oscar Smith, and the Bessels.jl contributors
 !
 !  This file contains the debye asymptotic asymptotic expansions for large orders.
@@ -35,6 +35,11 @@ module bessels_debye
     public :: besseljy_large_argument
     public :: hankel_debye
 
+    ! Shared U-polynomial machinery used by besselk/besseli Debye expansions.
+    ! The "split" forms compute the (Uk_In, Uk_Kn) / (Uk_Jn, Uk_Yn) pair from a single
+    ! polynomial evaluation.  Public so bessels_besselk / bessels_besseli can reuse them.
+    public :: Uk_poly10, Uk_poly20
+
     interface Uk_poly20
         module procedure Uk_poly20
         module procedure Uk_poly20_split
@@ -57,7 +62,7 @@ module bessels_debye
     elemental complex(BK) function hankel_debye(nu, x)
         real(BK), intent(in) :: nu, x
 
-        real(BK) :: vmx,vs,sqvs,n,p,p2,ab(2)
+        real(BK) :: vmx,vs,sqvs,n,pv,p2
         complex(BK) :: coef_Yn,Uk_Yn
         intrinsic :: sqrt
 
@@ -70,11 +75,13 @@ module bessels_debye
 
         coef_Yn = SQ2OPI * exp(n*IM) * sqvs
 
-        p    = nu/vs
-        p2   = nu**2/vmx
+        pv   = ONE/vs           ! = (nu/vs)/nu, but stays finite at nu = 0
+        p2   = nu*nu/vmx
 
-        ab    = Uk_poly_Hankel(p, nu, -p2, x) ! why p*im ?
-        Uk_Yn = IM*ab(2)
+        ! Julia evaluates split_evalpoly(-p*im/v, U_poly(-p2)) where p = nu/vs, so the
+        ! evaluation point is -(1/vs)*im and xx = -1/vs^2.  We carry the magnitude pv
+        ! explicitly so the formula is well-defined for nu = 0 (vs = x, pv = 1/x).
+        Uk_Yn = Uk_poly_Hankel_complex(pv, nu, -p2, x)
 
         hankel_debye = coef_Yn * Uk_Yn
 
@@ -273,6 +280,59 @@ module bessels_debye
 
     ! Debye large order expansion coefficients
     ! Implementation for arbitrary precision
+    ! Complex-valued b output of Uk_poly_Hankel for the Hankel function path.
+    ! Matches Julia's `_, Uk_Yn = Uk_poly_Hankel(p*im, v, -p^2, x)`.
+    !
+    ! The Julia call internally evaluates the polynomial at xx = (-p*im/v)^2 = -(p/v)^2 (real)
+    ! and then in the final reduction multiplies one accumulator by the purely imaginary
+    ! x = -(p/v)*im.  We do the same here entirely in real arithmetic and pack the result
+    ! into a complex number.
+    !
+    ! Argument convention: the caller passes `pv = p/v = 1/vs` directly so the function
+    ! stays finite when `v = 0`.  `v` is still needed for the Uk_poly10/20 cutoff.
+    elemental function Uk_poly_Hankel_complex(pv, v, p2_neg, x) result(b)
+        real(BK), intent(in) :: pv, v, p2_neg, x
+        complex(BK) :: b
+
+        real(BK) :: poly(22), xx, out, out2
+        integer :: i, N
+
+        select case (BK)
+           case (real64)
+                if (v < 5.0_BK + 0.998_BK*x + 10.541_BK*cbrt(-x)) then
+                    call Uk_poly10(p2_neg, poly(1:11))
+                    N = 11
+                else
+                    call Uk_poly20(p2_neg, poly(1:21))
+                    N = 21
+                end if
+           case default
+                call Uk_poly_Jn_generic(p2_neg, poly(1:22))
+                N = 22
+        end select
+
+        xx = -pv*pv
+
+        out  = poly(N)
+        out2 = poly(N-1)
+        do i = N-2, 2, -2
+            out  = muladd(xx, out,  poly(i))
+            out2 = muladd(xx, out2, poly(i-1))
+        end do
+
+        ! Final reduction: Julia's split_evalpoly with x = -pv*im gives, for odd N,
+        !   b = (xx*out + poly(1)) + (-out2*pv)*im
+        ! and for even N,
+        !   b = out2 + out  with out *= x first, i.e. b_re = out2, b_im = -out*pv.
+        if (mod(N,2) == 0) then
+            b = cmplx(out2, -out*pv, BK)
+        else
+            out = muladd(xx, out, poly(1))
+            b   = cmplx(out, -out2*pv, BK)
+        end if
+
+    end function Uk_poly_Hankel_complex
+
     pure function Uk_poly_Hankel(p, v, p2, x) result(ab)
         real(BK), intent(in) :: p,v,p2,x
 

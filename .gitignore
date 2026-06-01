@@ -10,3 +10,6 @@ project/doxygen/doxygen.log
 doc/media/data/
 doc/__pycache__/
 *.pyc
+
+.cache/
+

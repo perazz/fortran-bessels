@@ -25,3 +25,9 @@ name="bessels_tests"
 source-dir="test"
 main="bessels_test.f90"
 
+# Documentation helper (dumps x,f(x) CSV for the accuracy plots; see doc/README.md)
+[[example]]
+name="dump_values"
+source-dir="example"
+main="dump_values.f90"
+

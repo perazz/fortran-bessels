@@ -1,45 +1,74 @@
 # fortran-bessels
-Fortran port (stub) of the [Bessels.jl](https://github.com/heltonmc/Bessels.jl.git) repository
+A Modern Fortran port of the [Bessels.jl](https://github.com/heltonmc/Bessels.jl.git) library for
+fast, accurate Bessel function evaluation in pure Fortran.
 
-Building
+📖 **API documentation:** https://perazz.github.io/fortran-bessels
 
-Currently available functions are in the `bessel_constants` module:
-- `besselj0(x)`
-- `besselj1(x)`
-- `besselj(nu, x)`
-- `bessely0(x)`
-- `bessely1(x)`
-- `besselk0(x)`
-- `besselk1(x)`
-- `besseli0(x)`
-- `besseli1(x)`
-- `gamma_BK(x)`
+## Available functions
 
-Not yet implemented: 
-- `bessely(nu, x)`
-- `besseli(nu, x)`
-- `besselk(nu, x)`
-- `besselh(nu, k, x)`
-- `hankelh1(nu, x)`
-- `hankelh2(nu, x)`
-- `sphericalbesselj(nu, x)`
-- `sphericalbessely(nu, x)`
-- `Bessels.sphericalbesseli(nu, x)`
-- `Bessels.sphericalbesselk(nu, x)`
-- `airyai(x)`
-- `airyaiprime(x)`
-- `airybi(x)`
-- `airybiprime(x)`
+All functions live in the `bessels` module and are `elemental real(BK) function`s
+(`BK = real64`) unless noted, so they accept scalars or whole arrays interchangeably.
 
-A simple build can be achieved by running:
+**Fixed order** — hand-tuned minimax/asymptotic branches, the fast path:
+- `besselj0(x)`, `besselj1(x)` — J₀, J₁
+- `bessely0(x)`, `bessely1(x)` — Y₀, Y₁
+- `besseli0(x)`, `besseli1(x)` — I₀, I₁
+- `besselk0(x)`, `besselk1(x)` — K₀, K₁
 
+**Integer order:**
+- `besseljn(nu, x)` — Jₙ, `nu` integer
+
+**Real order** (`nu`, `x` both real):
+- `bessely(nu, x)` — Yᵥ
+- `besselh(nu, k, x) -> complex(BK)` — Hankel Hᵥ⁽ᵏ⁾, `k` ∈ {1, 2}
+- `hankelh1(nu, x)`, `hankelh2(nu, x) -> complex(BK)` — Hᵥ⁽¹⁾, Hᵥ⁽²⁾
+
+**Support:**
+- `gamma_BK(x)` — gamma function (re-exported from `bessels`)
+- `cbrt(x)` — cube-root helper
+- constants `BK`, `BSIZE`, `ZERO`, `ONE`, `THIRD`
+
+> ⚠️ **Integer ν only for `bessely`/`besselh`/`hankelh1`/`hankelh2`.**
+> These are validated for **integer** orders. Non-integer ν has known port bugs in the
+> variable-order Y/Hankel paths (power-series argument swap, Chebyshev mapping, `hankel_debye`
+> complex output) and will return incorrect values. See
+> [todo/07-nonintegerNU-bugs.md](todo/07-nonintegerNU-bugs.md).
+
+### Not yet implemented
+- `besseli(nu, x)`, `besselk(nu, x)` — real-order I, K
+- `sphericalbesselj/y/i/k(nu, x)` — spherical Bessels
+- `airyai(x)`, `airyaiprime(x)`, `airybi(x)`, `airybiprime(x)` — Airy functions
+
+See the [implementation roadmap](todo/README.md) for the priority order.
+
+## Building
+
+The canonical build is [fpm](https://fpm.fortran-lang.org):
+
+```bash
+fpm test --profile release --flag "-march=native"
 ```
- gfortran -ffree-line-length-none -O3 -march=native -ffast-math src/bessels_constants.f90 src/bessels.f90 test/3rd_party/ribesl.f90 test/3rd_party/rkbesl.f90 test/bessels_test.f90 -o bessels_test.exe
+
+Manual gfortran build (matches the benchmark recipe):
+
+```bash
+gfortran -ffree-line-length-none -O3 -march=native -ffast-math \
+    src/bessels_constants.f90 src/bessels_gamma.f90 src/bessels_debye.f90 \
+    src/bessels.f90 \
+    test/3rd_party/ribesl.f90 test/3rd_party/rkbesl.f90 \
+    test/bessels_test.f90 -o bessels_test
+./bessels_test
 ```
+
+## Performance
 
 These are the results of a sample performance test on an M1 Mac with gfortran 12.1.0.
-For the functions where an intrinsic Fortran equivalent is available, the intrinsic version is compared against.
-For all others, the [netlib specfun](https://netlib.org/specfun/) package is employed, in the current refactoring by [Scivision](https://github.com/scivision/rpn-calc-fortran).
+The table covers the fixed-order kernels and gamma, where an intrinsic Fortran or netlib
+reference exists; the variable-order routines (`besseljn`, `bessely`, Hankel) compose these
+kernels and inherit their speed. For functions with an intrinsic Fortran equivalent, the
+intrinsic version is compared against. For all others, the
+[netlib specfun](https://netlib.org/specfun/) package is employed, in the current refactoring by
+[Scivision](https://github.com/scivision/rpn-calc-fortran).
 
 ```
 [bessel_j0] INTRINSIC time used:   37.5113 ns/eval, sum(z)=9476.3324505667606
@@ -63,6 +92,5 @@ For all others, the [netlib specfun](https://netlib.org/specfun/) package is emp
 
 ```
 
-this package is approximately *2x faster* than gcc's intrinsic function. For the non-fortran-intrinsic functions, this package is ludicrously faster than the netlib counterpart!
-
-
+this package is approximately *2x faster* than gcc's intrinsic function. For the
+non-fortran-intrinsic functions, this package is ludicrously faster than the netlib counterpart!

@@ -1,4 +1,15 @@
 
 bessels_test.exe
 *.mod
+
+# Doxygen output
+project/doxygen/html/
+project/doxygen/doxygen.log
+
+# Documentation plot tooling (PNGs in doc/media/ ARE committed)
+doc/media/data/
+doc/__pycache__/
+*.pyc
+
 .cache/
+

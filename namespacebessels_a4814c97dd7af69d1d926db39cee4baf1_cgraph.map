@@ -1,0 +1,19 @@
+<map id="bessels::bessely1" name="bessels::bessely1">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,141,143,166"/>
+<area shape="poly" id="edge8_Node000001_Node000001" title=" " alt="" coords="44,142,38,132,41,123,53,116,74,114,99,118,109,126,106,130,97,122,74,119,55,121,45,126,43,132,48,139"/>
+<area shape="rect" id="Node000002" href="$namespacebessels.html#a1ede97113f7e8821f507bd961848bcd6" title=" " alt="" coords="191,141,324,166"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="143,151,177,151,177,156,143,156"/>
+<area shape="rect" id="Node000003" href="$namespacebessels__constants.html#a4d2e688b1e4aa9fe3e3a2c08b4a0cb09" title=" " alt="" coords="372,5,521,45"/>
+<area shape="poly" id="edge9_Node000001_Node000003" title=" " alt="" coords="102,138,190,101,359,47,361,52,192,107,104,143"/>
+<area shape="rect" id="Node000007" href="$namespacebessels__constants.html#acb26c773e5536fdcf94e0ea9d5607cc4" title=" " alt="" coords="372,261,521,301"/>
+<area shape="poly" id="edge10_Node000001_Node000007" title=" " alt="" coords="113,164,375,254,373,259,111,169"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="227,142,221,132,224,123,237,116,257,114,282,118,293,126,289,130,280,122,257,119,238,121,228,126,226,132,232,139"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="269,138,312,99,371,55,380,49,383,54,373,60,316,103,273,142"/>
+<area shape="rect" id="Node000004" href="$namespacebessels__constants.html#a8b8648fb2d7cc4890162a224fc28c8a7" title=" " alt="" coords="372,69,521,109"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="295,138,373,111,375,116,297,143"/>
+<area shape="rect" id="Node000005" href="$namespacebessels__constants.html#a2d88d08235a3878e3565a6ce9a35c4a6" title=" " alt="" coords="372,133,521,173"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="324,151,359,151,359,156,324,156"/>
+<area shape="rect" id="Node000006" href="$namespacebessels__constants.html#a3e8fbd02f35894691e6e570af3a9f097" title=" " alt="" coords="372,197,521,237"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="297,164,375,190,373,195,295,169"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="273,164,316,204,373,247,383,253,380,257,371,252,312,208,269,168"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="bessels_besseli::besselix" name="bessels_besseli::besselix">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,192,62"/>
+<area shape="rect" id="Node000002" href="$namespacebessels__besselk.html#af270188dc486434eb19e42e975c3c23e" title=" " alt="" coords="240,11,427,37"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="192,37,226,33,227,38,192,42"/>
+<area shape="rect" id="Node000003" href="$namespacebessels__constants.html#a0009dbc79e8cf3ad7464ee616593ba0e" title=" " alt="" coords="475,29,624,69"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="192,47,461,47,461,52,192,52"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="427,32,461,36,460,42,427,38"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="509,30,506,20,513,10,527,5,549,3,575,6,588,13,586,18,573,11,549,8,529,10,516,15,512,21,514,28"/>
+</map>
